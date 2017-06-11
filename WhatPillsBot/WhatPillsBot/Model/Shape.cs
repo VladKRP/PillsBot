@@ -1,16 +1,15 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Web;
+﻿
+using Newtonsoft.Json;
 
 namespace WhatPillsBot.Model
 {
+    [System.Serializable]
     public class Shape
     {
-        public int Id { get; set; }
-
+        [JsonProperty("name")]
         public string Name { get; set; }
 
+        [JsonProperty("value")]
         public string Value { get; set; }
     }
 }

@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Newtonsoft.Json;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -9,34 +10,30 @@ namespace WhatPillsBot.Services
 {
     public static class PillsChecker
     {
-        public static IEnumerable<Pill> GetPills()
+        
+        public static Pill GetPill(string id)
         {
-            string siteUrl = "https://pill-id.webpoisoncontrol.org/#/tab-name?q=aba";
-            var sitePill = SiteParser.Parser.ParseSiteAsString(siteUrl);
-            string url = "https://pill-id.webpoisoncontrol.org/js/pill-id.min.js";   
-            var site = SiteParser.Parser.ParseSiteAsString(url);
-            var dataStartIndex = site.IndexOf("return{shapes:");
-            var data = site.Where((x,i) => i >= dataStartIndex).Aggregate("",(x,y) => x+=y);
-            var colorsIndex = data.IndexOf("colors");
-            var dataEndIndex = data.IndexOf("angular.module");
-            var shape = data.TakeWhile((x, i) => i <=  colorsIndex).Aggregate("", (x, y) => x += y); ;     
-            var colors = data.Where((x, i) => i >= colorsIndex && i <= dataEndIndex).Aggregate("", (x, y) => x += y);
-            var cl = GetExistingPillColors(colors);
-            return null;
+            //string pillUrl = $"https://api.webpoisoncontrol.org/api/pill/{id}?caseId=68920";
+            string pillUrl = "https://api.webpoisoncontrol.org/api/pill/36961?caseId=68920";
+            const string referer = "https://pill-id.webpoisoncontrol.org/";
+            var sitePill = SiteParser.Parser.SendRequest(pillUrl, "GET", referer);
+            var pill = JsonConvert.DeserializeObject<Pill>(sitePill);
+            return pill;
         }
 
-        public static IEnumerable<string> GetExistingPillColors(string colors)
+        public static IEnumerable<Pill> GetPills(UserRequest request)
         {
-            var bracket = "{";
-            var bracketIndex = Regex.Matches(colors, bracket).Cast<Match>().Select(m => m.Index + 1);
-            return null;
+            IEnumerable<Pill> pills = Enumerable.Empty<Pill>();
+            if(request != null)
+            {
+                string pillsUrl = $"https://api.webpoisoncontrol.org/api/pillid/?a={request.FrontSideId}&b={request.BackSideId}&colors={request.Colors}&shapes={request.Shape}&q={request.Name}";
+                //string pillsUrl = $"https://api.webpoisoncontrol.org/api/pillid/?a=10&b=&colors=&shapes=&q=";
+                const string referer = "https://pill-id.webpoisoncontrol.org/";
+                var sitePills = SiteParser.Parser.SendRequest(pillsUrl, "GET", referer);
+                pills = JsonConvert.DeserializeObject<IEnumerable<Pill>>(sitePills);
+            }
+            return pills;
         }
-
-        public static IEnumerable<string> GetExistingPillShapes(string shapes)
-        {
-            return null;
-        }
-
 
     }
 }

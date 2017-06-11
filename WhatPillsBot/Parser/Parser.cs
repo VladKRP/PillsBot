@@ -15,22 +15,25 @@ namespace SiteParser
             return Encoding.UTF8.GetString(pageContent);
         }
 
-        public static string SendPostRequest(string dataToSend, string url, string referer)
+        public static string SendRequest(string url, string method, string referer,string dataToSend = null)
         {
             var request = (HttpWebRequest)WebRequest.Create(url);
-            var data = Encoding.ASCII.GetBytes(dataToSend);
+            byte[] data = null;
+            if(dataToSend != null)
+                data = Encoding.ASCII.GetBytes(dataToSend);
 
             if (request != null)
             {
-                request.Method = "POST";
+                request.Method = method;
                 request.ContentType = "application/x-www-form-urlencoded";
                 request.AutomaticDecompression = DecompressionMethods.GZip;
                 request.Referer = referer;
-                request.ContentLength = data.Length;
-
-                using (var requestStream = request.GetRequestStream())
-                    requestStream.Write(data, 0, data.Length);
-
+                if(dataToSend != null)
+                {
+                    request.ContentLength = data.Length;
+                    using (var requestStream = request.GetRequestStream())
+                        requestStream.Write(data, 0, data.Length);
+                }                  
                 var response = (HttpWebResponse)request.GetResponse();
                 return new StreamReader(response.GetResponseStream()).ReadToEnd();
             }
