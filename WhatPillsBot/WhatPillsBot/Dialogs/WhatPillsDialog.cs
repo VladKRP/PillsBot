@@ -34,14 +34,15 @@ namespace WhatPillsBot.Dialogs
                 case 0:await ReceiveInitialQuestionAnswer(context); break;      
                 case 1:await ReceiveFindPillAnswer(context, messageText); break;
                 case 2:await ReceiveIsKnowPillAnswer(context, messageText); break;
-                case 3:await ReceivePills(context, messageText); break;
+                case 3:await ReceiveName(context, messageText); break;
                 case 4:await ReceiveColorAnswer(context, messageText); break;
                 case 5:await ReceiveShapeAnswer(context, messageText);break;
                 case 6:await ReceiveHasNumberAnswer(context, messageText);break;
                 case 7:await ReceiveFirstSideNumberAnswer(context, messageText);break;
-                //case 8:await ReceiveSecondSideNumberAnswer(context, messageText);break;
-                //case 9:await ReceiveIsPillFoundedAnswer(context, messageText);break;
-                //case 10:await ReceiveCorrectRequestAnswer(context, messageText);break;    
+                case 8:await ReceiveSecondSideHasNumberAnswer(context, messageText);break;
+                case 9: await ReceiveSecondSideNumberAnswer(context, messageText); break;
+                    //case 9:await ReceiveIsPillFoundedAnswer(context, messageText);break;
+                    //case 10:await ReceiveCorrectRequestAnswer(context, messageText);break;    
             }
         }
 
@@ -83,18 +84,24 @@ namespace WhatPillsBot.Dialogs
             }
         }
 
-        public async Task ReceivePills(IDialogContext context, string messageText)
-        {
+       public async Task ReceiveName(IDialogContext context, string messageText)
+       {
             UserRequest.Name = messageText;
+            await context.PostAsync(ReceivePills(context));
+        }
+
+        public string ReceivePills(IDialogContext context)
+        {          
             string searchResult = null;
             var pills = PillsChecker.GetPills(UserRequest);
             if (pills.Count() > 0)
                 searchResult = "Here what we found";
+                //function to generate result string
             else
                 searchResult = "Something going wrong. We found nothing.";
-            await context.PostAsync(searchResult);
             Stage = 0;
             UserRequest = new UserRequest();
+            return searchResult;
         }
 
         public async Task ReceiveColorAnswer(IDialogContext context, string messageText)
@@ -112,7 +119,7 @@ namespace WhatPillsBot.Dialogs
         public async Task ReceiveShapeAnswer(IDialogContext context, string messageText) {
 
             var shapes = Shapes.Where(x => messageText.IndexOf(x.Name, StringComparison.CurrentCultureIgnoreCase) >= 0).Select(x => x.Value).FirstOrDefault();
-            if (shapes.Count() > 0)
+            if (shapes != null)
                 UserRequest.Shape = shapes;
             else
                 UserRequest.Shape = Shapes.Where(x => x.Name.Equals("other")).Select(x => x.Value).FirstOrDefault();
@@ -130,23 +137,39 @@ namespace WhatPillsBot.Dialogs
             }
             else
             {
-                Stage = 3;
-                context.Wait(MessageHandle);
+                Stage = 0;
+                await context.PostAsync(ReceivePills(context));
             }           
         }
 
         public async Task ReceiveFirstSideNumberAnswer(IDialogContext context, string messageText) {
             UserRequest.FrontSideId = messageText;
-            await context.PostAsync("Now flip pill on another side. If any number here please enter it.");
+            await context.PostAsync("Now flip pill on another side. Is it has number?");
             Stage = 8;
             context.Wait(MessageHandle);
         }
 
-        //public async Task ReceiveSecondSideNumberAnswer(IDialogContext context, string messageText)
-        //{
-        //    UserRequest.BackSideId = messageText;
-        //    Stage = 3;
-        //}
+        public async Task ReceiveSecondSideHasNumberAnswer(IDialogContext context, string messageText)
+        {
+            if (isUserAgree(messageText))
+            {
+                await context.PostAsync("Please enter it");
+                Stage = 9;
+                context.Wait(MessageHandle);
+            }
+            else
+            {
+                Stage = 0;
+                await context.PostAsync(ReceivePills(context));
+            }
+        }
+
+        public async Task ReceiveSecondSideNumberAnswer(IDialogContext context, string messageText)
+        {
+            UserRequest.BackSideId = messageText;
+            Stage = 0;
+            await context.PostAsync(ReceivePills(context));
+        }
 
         //public async Task ReceiveIsPillFoundedAnswer(IDialogContext context, string messageText) { }
 

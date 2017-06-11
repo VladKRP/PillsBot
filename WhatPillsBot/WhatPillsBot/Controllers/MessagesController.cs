@@ -22,9 +22,6 @@ namespace WhatPillsBot
         {
             if (activity != null && activity.GetActivityType() == ActivityTypes.Message)
             {
-
-                //var pills = PillsChecker.GetPills(new Model.UserRequest());
-                //var pill = new PillsChecker.GetPill("1");
                 await Conversation.SendAsync(activity, () => new WhatPillsDialog());
             }
             return new HttpResponseMessage(System.Net.HttpStatusCode.Accepted);
