@@ -137,6 +137,7 @@
     <Compile Include="App_Start\WebApiConfig.cs" />
     <Compile Include="Controllers\MessagesController.cs" />
     <Compile Include="Dialogs\WhatPillsDialog.cs" />
+    <Compile Include="Extensions\GenerateCardView.cs" />
     <Compile Include="Extensions\GenerateTextView.cs" />
     <Compile Include="Global.asax.cs">
       <DependentUpon>Global.asax</DependentUpon>
@@ -144,6 +145,8 @@
     <Compile Include="Model\Color.cs" />
     <Compile Include="Model\Ingredient.cs" />
     <Compile Include="Model\Pill.cs" />
+    <Compile Include="Model\PillGroup.cs" />
+    <Compile Include="Model\PillSearch.cs" />
     <Compile Include="Model\Shape.cs" />
     <Compile Include="Model\UserRequest.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

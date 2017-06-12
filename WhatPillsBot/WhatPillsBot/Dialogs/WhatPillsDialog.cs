@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using WhatPillsBot.Extensions;
 using WhatPillsBot.Model;
 using WhatPillsBot.Services;
 
@@ -15,6 +16,7 @@ namespace WhatPillsBot.Dialogs
 
         protected IEnumerable<Shape> Shapes = VariablesChecker.Shapes;
         protected IEnumerable<Color> Colors = VariablesChecker.Colors;
+        protected DateTime LastUsing { get; set; }
 
         protected UserRequest UserRequest = new UserRequest();
         protected int Stage { get; set; } = 0;
@@ -27,154 +29,143 @@ namespace WhatPillsBot.Dialogs
 
         public async Task MessageHandle(IDialogContext context, IAwaitable<IMessageActivity> argument)
         {
-            var message = await argument;
+            ResetUserDataAfterADay();
+            var message = await argument as Activity;
             var messageText = message.Text;
+            var reply = message.CreateReply();       
             switch (Stage)
             {
-                case 0:await ReceiveInitialQuestionAnswer(context); break;      
-                case 1:await ReceiveFindPillAnswer(context, messageText); break;
-                case 2:await ReceiveIsKnowPillAnswer(context, messageText); break;
-                case 3:await ReceiveName(context, messageText); break;
-                case 4:await ReceiveColorAnswer(context, messageText); break;
-                case 5:await ReceiveShapeAnswer(context, messageText);break;
-                case 6:await ReceiveHasNumberAnswer(context, messageText);break;
-                case 7:await ReceiveFirstSideNumberAnswer(context, messageText);break;
-                case 8:await ReceiveSecondSideHasNumberAnswer(context, messageText);break;
-                case 9: await ReceiveSecondSideNumberAnswer(context, messageText); break;
-                    //case 9:await ReceiveIsPillFoundedAnswer(context, messageText);break;
-                    //case 10:await ReceiveCorrectRequestAnswer(context, messageText);break;    
+                case 0:ReceiveInitialQuestionAnswer(context,reply); break;      
+                case 1:ReceiveFindPillAnswer(context, reply, messageText); break;
+                case 2:ReceiveIsKnowPillAnswer(context,reply, messageText); break;
+                case 3:ReceiveName(context, reply, messageText); break;
+                case 4:ReceiveColorAnswer(context, reply, messageText); break;
+                case 5:ReceiveShapeAnswer(context, reply, messageText);break;
+                case 6:ReceiveHasNumberAnswer(context, reply, messageText);break;
+                case 7:ReceiveFirstSideNumberAnswer(context, reply, messageText);break;
+                case 8:ReceiveSecondSideHasNumberAnswer(context, reply, messageText);break;
+                case 9:ReceiveSecondSideNumberAnswer(context, reply, messageText); break; 
             }
+            await context.PostAsync(reply);
+            context.Wait(MessageHandle);
+            LastUsing = DateTime.Now;
         }
 
-        public async Task ReceiveInitialQuestionAnswer(IDialogContext context)
+        public void ReceiveInitialQuestionAnswer(IDialogContext context, Activity activity)
         {
-            await context.PostAsync("Do you want to find pill?");
-            Stage = 1;
-            context.Wait(MessageHandle);           
+            activity.Text = "Do you want to find pill?";
+            Stage = 1;                   
         }
 
-        public async Task ReceiveFindPillAnswer(IDialogContext context, string messageText)
+        public void ReceiveFindPillAnswer(IDialogContext context, Activity activity, string messageText)
         {
             if (isUserAgree(messageText))
             {
-                await context.PostAsync("Did you know the name of the pill?");
-                Stage = 2;
-                context.Wait(MessageHandle);                
+                activity.Text = "Did you know the name of the pill?";
+                Stage = 2;            
             }              
             else
             {
-                await context.PostAsync("I can't help you with another thing, sorry =(");
-                Stage = 0;
+                activity.Text = "I can't help you with another thing, sorry =(";
+                ResetUserData();
             }
         }
 
-        public async Task ReceiveIsKnowPillAnswer(IDialogContext context, string messageText)
+        public void ReceiveIsKnowPillAnswer(IDialogContext context,Activity activity, string messageText)
         {
             if (isUserAgree(messageText))
             {
-                await context.PostAsync("It simplify our search. What is it name?");
-                Stage = 3;
-                context.Wait(MessageHandle);              
+                activity.Text = "It simplify our search.\n What is it name?";
+                Stage = 3;           
             }
             else
             {
-                await context.PostAsync("Ok.I think we can go another way.\n What color is  it?");
-                Stage = 4;
-                context.Wait(MessageHandle);              
+                activity.Text = "Ok.I think we can go another way.\n What color is  it?";
+                Stage = 4;           
             }
         }
 
-       public async Task ReceiveName(IDialogContext context, string messageText)
+        public void ReceiveName(IDialogContext context, Activity activity, string messageText)
        {
             UserRequest.Name = messageText;
-            await context.PostAsync(ReceivePills(context));
+            ReceivePills(activity, PillsChecker.GetPillsByName(UserRequest.Name));  
         }
 
-        public string ReceivePills(IDialogContext context)
-        {          
-            string searchResult = null;
-            var pills = PillsChecker.GetPills(UserRequest);
-            if (pills.Count() > 0)
-                searchResult = "Here what we found";
-                //function to generate result string
-            else
-                searchResult = "Something going wrong. We found nothing.";
-            Stage = 0;
-            UserRequest = new UserRequest();
-            return searchResult;
-        }
-
-        public async Task ReceiveColorAnswer(IDialogContext context, string messageText)
+        public void ReceiveColorAnswer(IDialogContext context, Activity activity, string messageText)
         {
-            var colors = Colors.Where(x => messageText.IndexOf(x.Name, StringComparison.CurrentCultureIgnoreCase) >= 0).Select(x => x.Value);
-            if (colors.Count() > 0)
-                UserRequest.Colors = string.Join(",", colors);
-            else
-                UserRequest.Colors = Colors.Where(x => x.Name.Equals("other")).Select(x => x.Value).FirstOrDefault();
-            await context.PostAsync("What shape is it?");
+            if (!string.IsNullOrEmpty(messageText))
+            {
+                var colors = Colors.Where(x => messageText.IndexOf(x.Name, StringComparison.CurrentCultureIgnoreCase) >= 0).Select(x => x.Value);
+                if (colors.Count() > 0)
+                    UserRequest.Colors = string.Join(",", colors);
+                else
+                    UserRequest.Colors = Colors.Where(x => x.Name.Equals("other")).Select(x => x.Value).FirstOrDefault();
+            }  
+            activity.Text = "What shape is it?";
             Stage = 5;
-            context.Wait(MessageHandle);
         }
 
-        public async Task ReceiveShapeAnswer(IDialogContext context, string messageText) {
-
-            var shapes = Shapes.Where(x => messageText.IndexOf(x.Name, StringComparison.CurrentCultureIgnoreCase) >= 0).Select(x => x.Value).FirstOrDefault();
-            if (shapes != null)
-                UserRequest.Shape = shapes;
-            else
-                UserRequest.Shape = Shapes.Where(x => x.Name.Equals("other")).Select(x => x.Value).FirstOrDefault();
-            await context.PostAsync("Is is has any numbers?");
+        public void ReceiveShapeAnswer(IDialogContext context, Activity activity, string messageText) {
+            if (!string.IsNullOrEmpty(messageText))
+            {
+                var shapes = Shapes.Where(x => messageText.IndexOf(x.Name, StringComparison.CurrentCultureIgnoreCase) >= 0).Select(x => x.Value).FirstOrDefault();
+                if (!string.IsNullOrEmpty(shapes))
+                    UserRequest.Shape = shapes;
+                else
+                    UserRequest.Shape = Shapes.Where(x => x.Name.Equals("other")).Select(x => x.Value).FirstOrDefault();
+            }           
+            activity.Text = "Is is has any numbers?";
             Stage = 6;
-            context.Wait(MessageHandle);
         }
 
-        public async Task ReceiveHasNumberAnswer(IDialogContext context, string messageText) {
+        public void ReceiveHasNumberAnswer(IDialogContext context,Activity activity, string messageText) {
             if (isUserAgree(messageText))
             {
-                await context.PostAsync("Please write the number that you see.");
+                activity.Text = "Please write the number that you see.";
                 Stage = 7;
-                context.Wait(MessageHandle);
             }
             else
-            {
-                Stage = 0;
-                await context.PostAsync(ReceivePills(context));
-            }           
+                ReceivePills(activity, PillsChecker.GetPillsByMultipleParametres(UserRequest));
         }
 
-        public async Task ReceiveFirstSideNumberAnswer(IDialogContext context, string messageText) {
+        public void ReceiveFirstSideNumberAnswer(IDialogContext context, Activity activity, string messageText) {
             UserRequest.FrontSideId = messageText;
-            await context.PostAsync("Now flip pill on another side. Is it has number?");
+            activity.Text = "Now flip pill on another side. Is it has number?";
             Stage = 8;
-            context.Wait(MessageHandle);
         }
 
-        public async Task ReceiveSecondSideHasNumberAnswer(IDialogContext context, string messageText)
+        public void ReceiveSecondSideHasNumberAnswer(IDialogContext context, Activity activity, string messageText)
         {
             if (isUserAgree(messageText))
             {
-                await context.PostAsync("Please enter it");
+                activity.Text = "Please enter it";
                 Stage = 9;
-                context.Wait(MessageHandle);
             }
             else
-            {
-                Stage = 0;
-                await context.PostAsync(ReceivePills(context));
-            }
+                ReceivePills(activity, PillsChecker.GetPillsByMultipleParametres(UserRequest));
         }
 
-        public async Task ReceiveSecondSideNumberAnswer(IDialogContext context, string messageText)
+        public void ReceiveSecondSideNumberAnswer(IDialogContext context, Activity activity, string messageText)
         {
             UserRequest.BackSideId = messageText;
             Stage = 0;
-            await context.PostAsync(ReceivePills(context));
+            ReceivePills(activity, PillsChecker.GetPillsByMultipleParametres(UserRequest));
         }
 
-        //public async Task ReceiveIsPillFoundedAnswer(IDialogContext context, string messageText) { }
-
-        //public async Task ReceiveCorrectRequestAnswer(IDialogContext context, string messageText) { }
-
+        public void ReceivePills(Activity activity, IEnumerable<Pill> pills)
+        {
+            string replyPhrase = null;
+            if (pills != null && pills.Count() > 0)
+            {
+                var pillsCard = GenerateCardView.GeneratePillsCard(pills);
+                replyPhrase = "Here what we found:";
+                activity.Attachments = pillsCard.Select(x => x.ToAttachment()).ToList();
+            }
+            else
+                replyPhrase = "Something going wrong. We found nothing.";
+            activity.Text = replyPhrase;
+            ResetUserData();
+        }
 
         private bool isUserAgree(string message)
         {
@@ -183,5 +174,17 @@ namespace WhatPillsBot.Dialogs
             return isAgree;
         }
 
+        private void ResetUserData()
+        {    
+            UserRequest = new UserRequest();
+            Stage = 0;
+        }
+
+        private void ResetUserDataAfterADay()
+        {
+            var currentDate = DateTime.Now;
+            if (!currentDate.Date.Equals(LastUsing.Date))
+                ResetUserData();
+        }
     }
 }

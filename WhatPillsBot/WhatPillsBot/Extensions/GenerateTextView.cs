@@ -1,18 +1,19 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Web;
+﻿using System.Linq;
+using WhatPillsBot.Model;
 
 namespace WhatPillsBot.Extensions
 {
     public static class GenerateTextView
     {
-        public static string GeneratePillList(IEnumerable<WhatPillsBot.Model.Pill> pills)
+        public static string GeneratePillIngredientsString(Pill pill)
         {
-            StringBuilder result = new StringBuilder();
+            var ingredients = from x in pill.Ingredients select $"{x.Name}({x.Strength} {x.StrengthUOM})";
+            return string.Join("\n", ingredients);
+        }
 
-            return result.ToString();
+        public static string GeneratePillColorsString(Pill pill)
+        {
+            return string.Join(",", (pill.Colors));
         }
 
     }
