@@ -25,7 +25,7 @@ namespace WhatPillsBot.Extensions
                 Title = pill.GroupName,
                 Subtitle = $"Imprint: {pill.Imprint}\r\n{GenerateTextView.GeneratePillIngredientsString(pill)}",
                 Text = $"shape:{pill.Shape}\tcolors: {GenerateTextView.GeneratePillColorsString(pill)}",
-                Tap = new CardAction("postBack",value:pill.Id)
+                Tap = new CardAction("postBack",value:pill.Id)        
             };
             return card;
         }
@@ -34,6 +34,12 @@ namespace WhatPillsBot.Extensions
         {
             var card = GeneratePillCard(pill);
             card.Text += pill.Usage;
+            return card;
+        }
+
+        public static HeroCard AddButton(this HeroCard card, string value)
+        {
+            card.Buttons = new List<CardAction>() { new CardAction("postBack", value: value, title: value) };
             return card;
         }
 

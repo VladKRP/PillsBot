@@ -39,7 +39,7 @@ namespace WhatPillsBot.Dialogs
                 case 0:InitialQuestion(reply); break;      
                 case 1:KnowPillNameQuestion(reply, messageText); break;
                 case 2:PillNameQuestion(reply, messageText); break;
-                case 3:PillsResult(reply, messageText);break;
+                case 3:PillsByNameResult(reply, messageText);break;
                 case 4:ReceiveColorAnswer(reply, messageText); break;
                 case 5:ReceiveShapeAnswer(reply, messageText);break;
                 case 6:ReceiveHasNumberAnswer(reply, messageText);break;
@@ -80,7 +80,55 @@ namespace WhatPillsBot.Dialogs
                 SetActivityTextAndStage(activity, "Ok, I think we can go another way. What color is  it?", 4);
         }
 
-        public void PillsResult(Activity activity, string messageText)
+        public void ReceiveColorAnswer(Activity activity, string message)
+        {
+            UserRequest.PillColors = SearchColorsIdes(message);
+            SetActivityTextAndStage(activity, "What shape is it?", 5);
+        }
+
+        public void ReceiveShapeAnswer(Activity activity, string message)
+        {
+            UserRequest.PillShape = SearchShapeId(message);
+            SetActivityTextAndStage(activity, "Is is has any numbers?", 6);
+        }
+
+        public void ReceiveHasNumberAnswer(Activity activity, string message)
+        {
+            if (isUserAgree(message))
+                SetActivityTextAndStage(activity, "Please write the number that you see.", 7);
+            else
+            {
+                ReceivePills(activity, PillsChecker.GetPillsByMultipleParametres(UserRequest));
+                Stage = 11;
+            }
+        }
+
+        public void ReceiveFirstSideNumberAnswer(Activity activity, string message)
+        {
+            UserRequest.PillFrontSideId = message;
+            SetActivityTextAndStage(activity, "Now flip pill on another side. Is it has number?", 8);
+        }
+
+
+        public void ReceiveSecondSideHasNumberAnswer(Activity activity, string message)
+        {
+            if (isUserAgree(message))
+                SetActivityTextAndStage(activity, "Please enter it", 9);
+            else
+            {
+                ReceivePills(activity, PillsChecker.GetPillsByMultipleParametres(UserRequest));
+                Stage = 11;
+            }              
+        }
+
+        public void ReceiveSecondSideNumberAnswer(Activity activity, string message)
+        {
+            UserRequest.PillBackSideId = message;
+            ReceivePills(activity, PillsChecker.GetPillsByMultipleParametres(UserRequest));
+            Stage = 11;
+        }
+
+        public void PillsByNameResult(Activity activity, string messageText)
         {
             UserRequest.PillName = messageText;
             getPillsOrGroups(activity);
@@ -115,7 +163,7 @@ namespace WhatPillsBot.Dialogs
                 var pillsCard = GenerateHeroCardView.GeneratePillsCard(pills);
                 replyPhrase = "Here what we found:";
                 activity.Attachments = pillsCard.Select(x => x.ToAttachment()).ToList();
-                activity.Attachments.Add(GenerateHeroCardView.GenerateMessageCard("To see more info about pill,click on it.").ToAttachment());
+                activity.Attachments.Add(GenerateHeroCardView.GenerateMessageCard("To see more info about pill, click on  it image.  In another way click on button bellow").AddButton("reset").ToAttachment());
             }
             else
                 replyPhrase = "Something going wrong. We found nothing.";
@@ -124,7 +172,7 @@ namespace WhatPillsBot.Dialogs
 
         public void ReceiveFullPillInfo(Activity activity, string message)
         {
-            if (!message.All(x => char.IsDigit(x)))
+            if (!message.Any(x => char.IsDigit(x)))
             {
                 ResetUserData();
                 InitialQuestion(activity);
@@ -150,44 +198,6 @@ namespace WhatPillsBot.Dialogs
             activity.Text = replyPhrase;
         }
 
-        public void ReceiveColorAnswer(Activity activity, string message)
-        {
-            UserRequest.PillColors = SearchColorsIdes(message);
-            SetActivityTextAndStage(activity, "What shape is it?", 5);
-        }
-
-        public void ReceiveShapeAnswer(Activity activity, string message)
-        {
-            UserRequest.PillShape = SearchShapeId(message);
-            SetActivityTextAndStage(activity, "Is is has any numbers?", 6);
-        }
-
-        public void ReceiveHasNumberAnswer(Activity activity, string message) {
-            if (isUserAgree(message))
-                SetActivityTextAndStage(activity, "Please write the number that you see.", 7);
-            else
-                ReceivePills(activity, PillsChecker.GetPillsByMultipleParametres(UserRequest));
-        }
-
-        public void ReceiveFirstSideNumberAnswer(Activity activity, string message) {
-            UserRequest.PillFrontSideId = message;
-            SetActivityTextAndStage(activity, "Now flip pill on another side. Is it has number?", 8);
-        }
-
-        public void ReceiveSecondSideHasNumberAnswer(Activity activity, string message)
-        {
-            if (isUserAgree(message))
-                SetActivityTextAndStage(activity, "Please enter it", 9);
-            else
-                ReceivePills(activity, PillsChecker.GetPillsByMultipleParametres(UserRequest));
-        }
-
-        public void ReceiveSecondSideNumberAnswer(Activity activity, string message)
-        {
-            UserRequest.PillBackSideId = message;
-            ReceivePills(activity, PillsChecker.GetPillsByMultipleParametres(UserRequest));
-        }
-
         public void ReceiveGroupId(Activity activity, string message)
         {
              UserRequest.PillGroup = message;
@@ -195,7 +205,7 @@ namespace WhatPillsBot.Dialogs
              Stage = 11;
         }
 
-        private void SetActivityTextAndStage(Activity activity, string text, int stage )
+        private void SetActivityTextAndStage(Activity activity, string text, int stage)
         {
             activity.Text = text;
             Stage = stage;
