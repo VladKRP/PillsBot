@@ -24,7 +24,8 @@ namespace WhatPillsBot.Extensions
                 Images = new List<CardImage>() { new CardImage(pill.ImageUrl) },
                 Title = pill.GroupName,
                 Subtitle = $"Imprint: {pill.Imprint}\r\n{GenerateTextView.GeneratePillIngredientsString(pill)}",
-                Text = $"shape:{pill.Shape}\tcolors: {GenerateTextView.GeneratePillColorsString(pill)} {Services.PillsChecker.GetPillUsage(pill.Id)}",
+                Text = $"shape:{pill.Shape}\tcolors: {GenerateTextView.GeneratePillColorsString(pill)}",
+                Tap = new CardAction("postBack",value:pill.Id)
             };
             return card;
         }

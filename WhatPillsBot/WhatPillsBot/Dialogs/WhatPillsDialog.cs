@@ -36,32 +36,35 @@ namespace WhatPillsBot.Dialogs
             var reply = message.CreateReply();       
             switch (Stage)
             {
-                case 0:ReceiveInitialQuestionAnswer(reply); break;      
-                case 1:ReceiveFindPillAnswer(reply, messageText); break;
-                case 2:ReceiveIsKnowPillAnswer(reply, messageText); break;
-                case 3:ReceiveName(reply, messageText);break;
+                case 0:InitialQuestion(reply); break;      
+                case 1:KnowPillNameQuestion(reply, messageText); break;
+                case 2:PillNameQuestion(reply, messageText); break;
+                case 3:PillsResult(reply, messageText);break;
                 case 4:ReceiveColorAnswer(reply, messageText); break;
                 case 5:ReceiveShapeAnswer(reply, messageText);break;
                 case 6:ReceiveHasNumberAnswer(reply, messageText);break;
                 case 7:ReceiveFirstSideNumberAnswer(reply, messageText);break;
                 case 8:ReceiveSecondSideHasNumberAnswer(reply, messageText);break;
                 case 9:ReceiveSecondSideNumberAnswer(reply, messageText); break;
-                case 10:ReceiveGroupId(reply, messageText);break;    
+                case 10:ReceiveGroupId(reply, messageText);break;
+                case 11:ReceiveFullPillInfo(reply, messageText);break; 
             }
             await context.PostAsync(reply);
             context.Wait(MessageHandle);
             LastUsing = DateTime.Now;
         }
 
-        public void ReceiveInitialQuestionAnswer(Activity activity)
+        
+
+        public void InitialQuestion(Activity activity)
         {
-            SetActivityTextAndStage(activity, "Do you want to find pill?", 1);       
+            SetActivityTextAndStage(activity, "Do you want to find pill?", 1);
         }
 
-        public void ReceiveFindPillAnswer(Activity activity, string messageText)
+        public void KnowPillNameQuestion(Activity activity, string messageText)
         {
             if (isUserAgree(messageText))
-                SetActivityTextAndStage(activity, "Did you know the name of the pill?", 2);             
+                SetActivityTextAndStage(activity, "Did you know the name of the pill?", 2);
             else
             {
                 activity.Text = "I can't help you with another thing, sorry =(";
@@ -69,31 +72,82 @@ namespace WhatPillsBot.Dialogs
             }
         }
 
-        public void ReceiveIsKnowPillAnswer(Activity activity, string messageText)
+        public void PillNameQuestion(Activity activity, string messageText)
         {
             if (isUserAgree(messageText))
-                SetActivityTextAndStage(activity, "It simplify our search. What is it name?", 3);                
+                SetActivityTextAndStage(activity, "It simplify our search. What is it name?", 3);
             else
                 SetActivityTextAndStage(activity, "Ok, I think we can go another way. What color is  it?", 4);
         }
 
-        public void ReceiveName(Activity activity, string messageText)
+        public void PillsResult(Activity activity, string messageText)
         {
             UserRequest.PillName = messageText;
+            getPillsOrGroups(activity);
+        }
+
+        public void getPillsOrGroups(Activity activity)
+        {
             var products = PillsChecker.GetPillProducts(UserRequest.PillName);
             var groups = PillsChecker.GetPillGroups(UserRequest.PillName);
             if (products.Count() > 0)
-                ReceivePills(activity, products);
-            else if(groups.Count() > 0)
             {
-                ReceiveGroups(activity, PillsChecker.GetPillGroups(UserRequest.PillName));
+                ReceivePills(activity, products);
+                Stage = 11;
+            }
+            else if (groups.Count() > 0)
+            {
+                ReceiveGroups(activity, groups);
                 Stage = 10;
             }
             else
             {
                 activity.Text = "We found nothing.";
                 ResetUserData();
-            }            
+            }
+        }
+
+        public void ReceivePills(Activity activity, IEnumerable<Pill> pills)
+        {
+            string replyPhrase = null;
+            if (pills != null && pills.Count() > 0)
+            {
+                var pillsCard = GenerateHeroCardView.GeneratePillsCard(pills);
+                replyPhrase = "Here what we found:";
+                activity.Attachments = pillsCard.Select(x => x.ToAttachment()).ToList();
+                activity.Attachments.Add(GenerateHeroCardView.GenerateMessageCard("To see more info about pill,click on it.").ToAttachment());
+            }
+            else
+                replyPhrase = "Something going wrong. We found nothing.";
+            activity.Text = replyPhrase;
+        }
+
+        public void ReceiveFullPillInfo(Activity activity, string message)
+        {
+            if (!message.All(x => char.IsDigit(x)))
+            {
+                ResetUserData();
+                InitialQuestion(activity);
+            }
+            else
+            {
+                var pill = PillsChecker.GetPillUsage(message);
+                activity.Attachments.Add(GenerateHeroCardView.GenerateMessageCard(pill).ToAttachment());
+            }
+        }
+
+        public void ReceiveGroups(Activity activity, IEnumerable<PillGroup> groups)
+        {
+            string replyPhrase = null;
+            if (groups != null && groups.Count() > 0)
+            {
+                var pillsCard = GenerateHeroCardView.GenerateGroupsCard(groups);
+                replyPhrase = "Choose the group to get result:";
+                activity.Attachments = pillsCard.Select(x => x.ToAttachment()).ToList();
+            }
+            else
+                replyPhrase = "Something going wrong. We found nothing.";
+            activity.Text = replyPhrase;
         }
 
         public void ReceiveColorAnswer(Activity activity, string message)
@@ -102,9 +156,10 @@ namespace WhatPillsBot.Dialogs
             SetActivityTextAndStage(activity, "What shape is it?", 5);
         }
 
-        public void ReceiveShapeAnswer(Activity activity, string message) {
+        public void ReceiveShapeAnswer(Activity activity, string message)
+        {
             UserRequest.PillShape = SearchShapeId(message);
-            SetActivityTextAndStage(activity, "Is is has any numbers?", 6);       
+            SetActivityTextAndStage(activity, "Is is has any numbers?", 6);
         }
 
         public void ReceiveHasNumberAnswer(Activity activity, string message) {
@@ -135,38 +190,9 @@ namespace WhatPillsBot.Dialogs
 
         public void ReceiveGroupId(Activity activity, string message)
         {
-                UserRequest.PillGroup = message;
-                ReceivePills(activity, PillsChecker.GetPillByGroupIdAndName(UserRequest.PillGroup, UserRequest.PillName));
-        }
-
-        public void ReceivePills(Activity activity, IEnumerable<Pill> pills)
-        {
-            string replyPhrase = null;
-            if (pills != null && pills.Count() > 0)
-            {
-                var pillsCard = GenerateHeroCardView.GeneratePillsCard(pills);
-                replyPhrase = "Here what we found:";
-                activity.Attachments = pillsCard.Select(x => x.ToAttachment()).ToList();
-            }
-            else
-                replyPhrase = "Something going wrong. We found nothing.";
-            activity.Text = replyPhrase;
-            //??
-            ResetUserData();
-        }
-
-        public void ReceiveGroups(Activity activity, IEnumerable<PillGroup> groups)
-        {
-            string replyPhrase = null;
-            if (groups != null && groups.Count() > 0)
-            {
-                var pillsCard = GenerateHeroCardView.GenerateGroupsCard(groups);
-                replyPhrase = "Choose the group to get result:";
-                activity.Attachments = pillsCard.Select(x => x.ToAttachment()).ToList();
-            }
-            else
-                replyPhrase = "Something going wrong. We found nothing.";
-            activity.Text = replyPhrase;
+             UserRequest.PillGroup = message;
+             ReceivePills(activity, PillsChecker.GetPillByGroupIdAndName(UserRequest.PillGroup, UserRequest.PillName));
+             Stage = 11;
         }
 
         private void SetActivityTextAndStage(Activity activity, string text, int stage )

@@ -15,6 +15,7 @@ namespace WhatPillsBot.Services
             string pillUrl = $"https://api.webpoisoncontrol.org/api/pill/{id}?caseId=1";
             var sitePill = SiteParser.Parser.SendRequest(pillUrl, "GET", referer);
             var pill = JsonConvert.DeserializeObject<Pill>(sitePill);
+            pill.Usage = pill.Usage.Replace("<p>", "").Replace("</p>", "");
             return pill;
         }
 
