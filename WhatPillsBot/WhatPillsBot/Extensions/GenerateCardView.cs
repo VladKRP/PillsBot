@@ -1,17 +1,20 @@
 ﻿using Microsoft.Bot.Connector;
 using System.Collections.Generic;
 using System.Linq;
-using WhatPillsBot.Model;
+using WhatPillsBot.Model.JSONDeserialization;
 
 namespace WhatPillsBot.Extensions
 {
-    public static class GenerateCardView
+    public static class GenerateHeroCardView
     {
+        public static HeroCard GenerateMessageCard(string message)
+        {
+            return new HeroCard(text: message);
+        }
+
         public static IEnumerable<HeroCard> GeneratePillsCard(IEnumerable<Pill> pills)
         {
-            IEnumerable<HeroCard> cards = Enumerable.Empty<HeroCard>();
-            cards = pills.Select(x => GeneratePillCard(x));
-            return cards;
+            return pills.Select(x => GeneratePillCard(x));
         }
 
         public static HeroCard GeneratePillCard(Pill pill)
@@ -33,11 +36,17 @@ namespace WhatPillsBot.Extensions
             return card;
         }
 
+        public static IEnumerable<HeroCard> GenerateGroupsCard(IEnumerable<PillGroup> groups)
+        {
+            return groups.Select(x => GenerateGroupCard(x));               
+        }
+
         public static  HeroCard GenerateGroupCard(PillGroup group)
         {
             return new HeroCard()
             {
-                Title = group.Name
+                Title = group.Name,
+                Tap = new CardAction("postBack", value:group.Id)
             };
         }
 

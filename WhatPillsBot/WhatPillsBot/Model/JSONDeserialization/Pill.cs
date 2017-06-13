@@ -1,7 +1,8 @@
 using Newtonsoft.Json;
 using System.Collections.Generic;
 
-namespace WhatPillsBot.Model{
+namespace WhatPillsBot.Model.JSONDeserialization
+{
 
     [System.Serializable]
     public class Pill{

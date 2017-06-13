@@ -1,16 +1,13 @@
 ﻿using Newtonsoft.Json;
-using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text.RegularExpressions;
-using System.Web;
+using WhatPillsBot.Model.JSONDeserialization;
 using WhatPillsBot.Model;
 
 namespace WhatPillsBot.Services
 {
     public static class PillsChecker
     {
-
         const string referer = "https://pill-id.webpoisoncontrol.org/";
 
         public static Pill GetPill(string id)
@@ -29,34 +26,61 @@ namespace WhatPillsBot.Services
             return pill.Usage.Replace("<p>","").Replace("</p>","");
         }
 
-        public static IEnumerable<Pill> GetPillsByName(string name)
+        public static IEnumerable<PillGroup> GetPillGroups(string name)
+        {
+            IEnumerable<PillGroup> groups = Enumerable.Empty<PillGroup>();
+            var pillSearch = GetPillSearchResultByName(name);
+            if (isAnyGroupsReturned(pillSearch))
+                groups = pillSearch.Groups;
+            return groups;
+        }
+
+        public static IEnumerable<Pill> GetPillProducts(string name)
         {
             IEnumerable<Pill> pills = Enumerable.Empty<Pill>();
-            if(name != null)
+            var pillSearch = GetPillSearchResultByName(name);
+            if (isAnyProductsReturned(pillSearch))
+               pills = pillSearch.Products;
+            return pills;
+        }
+
+        public static IEnumerable<Pill> GetPillByGroupIdAndName(string id, string name)
+        {
+            IEnumerable<Pill> pills = Enumerable.Empty<Pill>();
+            if(!string.IsNullOrEmpty(id) && !string.IsNullOrEmpty(name))
+            {
+                string pillsUrl = $"https://api.webpoisoncontrol.org/api/pillgroups?id={id}&search={name}";
+                var sitePills = SiteParser.Parser.SendRequest(pillsUrl, "GET", referer);
+                pills = JsonConvert.DeserializeObject<IEnumerable<Pill>>(sitePills);
+            }
+            return pills;
+        }
+
+        public static IEnumerable<Pill> GetPillsByMultipleParametres(UserRequest request)
+        {
+            IEnumerable<Pill> pills = Enumerable.Empty<Pill>();
+            if (request != null)
+            {
+                string pillsUrl = $"https://api.webpoisoncontrol.org/api/pillid/?a={request.PillFrontSideId}&b={request.PillBackSideId}&colors={request.PillColors}&shapes={request.PillShape}&q={request.PillName}";
+                var sitePills = SiteParser.Parser.SendRequest(pillsUrl, "GET", referer);
+                pills = JsonConvert.DeserializeObject<IEnumerable<Pill>>(sitePills);
+            }
+            return pills;
+        }
+
+        private static PillSearch GetPillSearchResultByName(string name)
+        {
+            PillSearch pillSearch = null;
+            if (name != null)
             {
                 string pillsUrl = $"https://api.webpoisoncontrol.org/api/pillsearch/?search={name}";
                 var sitePills = SiteParser.Parser.SendRequest(pillsUrl, "GET", referer);
-                pills = JsonConvert.DeserializeObject<PillSearch>(sitePills).Products;           
+                pillSearch = JsonConvert.DeserializeObject<PillSearch>(sitePills);
             }
-            return pills;
-        }   
-        
-        public static void GetPillsOrGroupsByName()
-        {
-
+            return pillSearch;
         }
 
-        public static IEnumerable<Group> GetPillGroups(UserRequest request)
-        {
-            return null;
-        }
-
-        public static IEnumerable<Pill> GetPillProducts(UserRequest request)
-        {
-            return null;
-        }
-
-        public static bool isAnyProductsReturned(PillSearch entity)
+        private static bool isAnyProductsReturned(PillSearch entity)
         {
             bool anyProducts = false;
             if (entity.Products != null)
@@ -64,24 +88,12 @@ namespace WhatPillsBot.Services
             return anyProducts;
         }
         
-        public static bool isAnyGroupsReturned(PillSearch entity)
+        private static bool isAnyGroupsReturned(PillSearch entity)
         {
             bool anyGroups = false;
-            if (entity.Products != null)
+            if (entity.Groups != null)
                 anyGroups = true;
             return anyGroups;
-        }
-
-        public static IEnumerable<Pill> GetPillsByMultipleParametres(UserRequest request)
-        {
-            IEnumerable<Pill> pills = Enumerable.Empty<Pill>();
-            if(request != null)
-            {
-                string pillsUrl = $"https://api.webpoisoncontrol.org/api/pillid/?a={request.FrontSideId}&b={request.BackSideId}&colors={request.Colors}&shapes={request.Shape}&q={request.Name}";
-                var sitePills = SiteParser.Parser.SendRequest(pillsUrl, "GET", referer);
-                pills = JsonConvert.DeserializeObject<IEnumerable<Pill>>(sitePills);
-            }
-            return pills;
         }
 
     }

@@ -1,9 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Web;
 
-namespace WhatPillsBot.Model
+namespace WhatPillsBot.Model.JSONDeserialization
 {
     [Serializable]
     public class PillGroup

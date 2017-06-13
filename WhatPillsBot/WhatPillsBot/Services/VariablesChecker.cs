@@ -1,7 +1,7 @@
 ﻿using Newtonsoft.Json;
 using System.Collections.Generic;
 using System.Linq;
-using WhatPillsBot.Model;
+using WhatPillsBot.Model.JSONDeserialization;
 
 namespace WhatPillsBot.Services
 {

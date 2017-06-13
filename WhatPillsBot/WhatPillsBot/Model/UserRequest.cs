@@ -4,19 +4,21 @@ namespace WhatPillsBot.Model
     [System.Serializable]
     public class UserRequest
     {
-        public string Name { get; set; }
-        public string FrontSideId { get; set; }
-        public string BackSideId { get; set; }
-        public string Shape { get; set; }
-        public string Colors { get; set; }
+        public string PillName { get; set; }
+        public string PillFrontSideId { get; set; }
+        public string PillBackSideId { get; set; }
+        public string PillShape { get; set; }
+        public string PillColors { get; set; }
+        public string PillGroup { get; set; }
 
         public UserRequest()
         {
-            Name = "";
-            FrontSideId = "";
-            BackSideId = "";
-            Shape = "";
-            Colors = "";
+            PillName = "";
+            PillFrontSideId = "";
+            PillBackSideId = "";
+            PillShape = "";
+            PillColors = "";
+            PillGroup = "";
         }
     }
 }

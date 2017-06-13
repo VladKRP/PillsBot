@@ -1,6 +1,5 @@
-using Newtonsoft.Json;
 
-namespace WhatPillsBot.Model
+namespace WhatPillsBot.Model.JSONDeserialization
 {
     [System.Serializable]
     public class Ingredient{

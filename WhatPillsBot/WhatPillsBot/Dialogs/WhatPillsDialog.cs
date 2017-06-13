@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using WhatPillsBot.Extensions;
 using WhatPillsBot.Model;
 using WhatPillsBot.Services;
+using WhatPillsBot.Model.JSONDeserialization;
 
 namespace WhatPillsBot.Dialogs
 {
@@ -35,35 +36,32 @@ namespace WhatPillsBot.Dialogs
             var reply = message.CreateReply();       
             switch (Stage)
             {
-                case 0:ReceiveInitialQuestionAnswer(context,reply); break;      
-                case 1:ReceiveFindPillAnswer(context, reply, messageText); break;
-                case 2:ReceiveIsKnowPillAnswer(context,reply, messageText); break;
-                case 3:ReceiveName(context, reply, messageText); break;
-                case 4:ReceiveColorAnswer(context, reply, messageText); break;
-                case 5:ReceiveShapeAnswer(context, reply, messageText);break;
-                case 6:ReceiveHasNumberAnswer(context, reply, messageText);break;
-                case 7:ReceiveFirstSideNumberAnswer(context, reply, messageText);break;
-                case 8:ReceiveSecondSideHasNumberAnswer(context, reply, messageText);break;
-                case 9:ReceiveSecondSideNumberAnswer(context, reply, messageText); break; 
+                case 0:ReceiveInitialQuestionAnswer(reply); break;      
+                case 1:ReceiveFindPillAnswer(reply, messageText); break;
+                case 2:ReceiveIsKnowPillAnswer(reply, messageText); break;
+                case 3:ReceiveName(reply, messageText);break;
+                case 4:ReceiveColorAnswer(reply, messageText); break;
+                case 5:ReceiveShapeAnswer(reply, messageText);break;
+                case 6:ReceiveHasNumberAnswer(reply, messageText);break;
+                case 7:ReceiveFirstSideNumberAnswer(reply, messageText);break;
+                case 8:ReceiveSecondSideHasNumberAnswer(reply, messageText);break;
+                case 9:ReceiveSecondSideNumberAnswer(reply, messageText); break;
+                case 10:ReceiveGroupId(reply, messageText);break;    
             }
             await context.PostAsync(reply);
             context.Wait(MessageHandle);
             LastUsing = DateTime.Now;
         }
 
-        public void ReceiveInitialQuestionAnswer(IDialogContext context, Activity activity)
+        public void ReceiveInitialQuestionAnswer(Activity activity)
         {
-            activity.Text = "Do you want to find pill?";
-            Stage = 1;                   
+            SetActivityTextAndStage(activity, "Do you want to find pill?", 1);       
         }
 
-        public void ReceiveFindPillAnswer(IDialogContext context, Activity activity, string messageText)
+        public void ReceiveFindPillAnswer(Activity activity, string messageText)
         {
             if (isUserAgree(messageText))
-            {
-                activity.Text = "Did you know the name of the pill?";
-                Stage = 2;            
-            }              
+                SetActivityTextAndStage(activity, "Did you know the name of the pill?", 2);             
             else
             {
                 activity.Text = "I can't help you with another thing, sorry =(";
@@ -71,85 +69,74 @@ namespace WhatPillsBot.Dialogs
             }
         }
 
-        public void ReceiveIsKnowPillAnswer(IDialogContext context,Activity activity, string messageText)
+        public void ReceiveIsKnowPillAnswer(Activity activity, string messageText)
         {
             if (isUserAgree(messageText))
+                SetActivityTextAndStage(activity, "It simplify our search. What is it name?", 3);                
+            else
+                SetActivityTextAndStage(activity, "Ok, I think we can go another way. What color is  it?", 4);
+        }
+
+        public void ReceiveName(Activity activity, string messageText)
+        {
+            UserRequest.PillName = messageText;
+            var products = PillsChecker.GetPillProducts(UserRequest.PillName);
+            var groups = PillsChecker.GetPillGroups(UserRequest.PillName);
+            if (products.Count() > 0)
+                ReceivePills(activity, products);
+            else if(groups.Count() > 0)
             {
-                activity.Text = "It simplify our search.\n What is it name?";
-                Stage = 3;           
+                ReceiveGroups(activity, PillsChecker.GetPillGroups(UserRequest.PillName));
+                Stage = 10;
             }
             else
             {
-                activity.Text = "Ok.I think we can go another way.\n What color is  it?";
-                Stage = 4;           
-            }
+                activity.Text = "We found nothing.";
+                ResetUserData();
+            }            
         }
 
-        public void ReceiveName(IDialogContext context, Activity activity, string messageText)
-       {
-            UserRequest.Name = messageText;
-            ReceivePills(activity, PillsChecker.GetPillsByName(UserRequest.Name));  
-        }
-
-        public void ReceiveColorAnswer(IDialogContext context, Activity activity, string messageText)
+        public void ReceiveColorAnswer(Activity activity, string message)
         {
-            if (!string.IsNullOrEmpty(messageText))
-            {
-                var colors = Colors.Where(x => messageText.IndexOf(x.Name, StringComparison.CurrentCultureIgnoreCase) >= 0).Select(x => x.Value);
-                if (colors.Count() > 0)
-                    UserRequest.Colors = string.Join(",", colors);
-                else
-                    UserRequest.Colors = Colors.Where(x => x.Name.Equals("other")).Select(x => x.Value).FirstOrDefault();
-            }  
-            activity.Text = "What shape is it?";
-            Stage = 5;
+            UserRequest.PillColors = SearchColorsIdes(message);
+            SetActivityTextAndStage(activity, "What shape is it?", 5);
         }
 
-        public void ReceiveShapeAnswer(IDialogContext context, Activity activity, string messageText) {
-            if (!string.IsNullOrEmpty(messageText))
-            {
-                var shapes = Shapes.Where(x => messageText.IndexOf(x.Name, StringComparison.CurrentCultureIgnoreCase) >= 0).Select(x => x.Value).FirstOrDefault();
-                if (!string.IsNullOrEmpty(shapes))
-                    UserRequest.Shape = shapes;
-                else
-                    UserRequest.Shape = Shapes.Where(x => x.Name.Equals("other")).Select(x => x.Value).FirstOrDefault();
-            }           
-            activity.Text = "Is is has any numbers?";
-            Stage = 6;
+        public void ReceiveShapeAnswer(Activity activity, string message) {
+            UserRequest.PillShape = SearchShapeId(message);
+            SetActivityTextAndStage(activity, "Is is has any numbers?", 6);       
         }
 
-        public void ReceiveHasNumberAnswer(IDialogContext context,Activity activity, string messageText) {
-            if (isUserAgree(messageText))
-            {
-                activity.Text = "Please write the number that you see.";
-                Stage = 7;
-            }
+        public void ReceiveHasNumberAnswer(Activity activity, string message) {
+            if (isUserAgree(message))
+                SetActivityTextAndStage(activity, "Please write the number that you see.", 7);
             else
                 ReceivePills(activity, PillsChecker.GetPillsByMultipleParametres(UserRequest));
         }
 
-        public void ReceiveFirstSideNumberAnswer(IDialogContext context, Activity activity, string messageText) {
-            UserRequest.FrontSideId = messageText;
-            activity.Text = "Now flip pill on another side. Is it has number?";
-            Stage = 8;
+        public void ReceiveFirstSideNumberAnswer(Activity activity, string message) {
+            UserRequest.PillFrontSideId = message;
+            SetActivityTextAndStage(activity, "Now flip pill on another side. Is it has number?", 8);
         }
 
-        public void ReceiveSecondSideHasNumberAnswer(IDialogContext context, Activity activity, string messageText)
+        public void ReceiveSecondSideHasNumberAnswer(Activity activity, string message)
         {
-            if (isUserAgree(messageText))
-            {
-                activity.Text = "Please enter it";
-                Stage = 9;
-            }
+            if (isUserAgree(message))
+                SetActivityTextAndStage(activity, "Please enter it", 9);
             else
                 ReceivePills(activity, PillsChecker.GetPillsByMultipleParametres(UserRequest));
         }
 
-        public void ReceiveSecondSideNumberAnswer(IDialogContext context, Activity activity, string messageText)
+        public void ReceiveSecondSideNumberAnswer(Activity activity, string message)
         {
-            UserRequest.BackSideId = messageText;
-            Stage = 0;
+            UserRequest.PillBackSideId = message;
             ReceivePills(activity, PillsChecker.GetPillsByMultipleParametres(UserRequest));
+        }
+
+        public void ReceiveGroupId(Activity activity, string message)
+        {
+                UserRequest.PillGroup = message;
+                ReceivePills(activity, PillsChecker.GetPillByGroupIdAndName(UserRequest.PillGroup, UserRequest.PillName));
         }
 
         public void ReceivePills(Activity activity, IEnumerable<Pill> pills)
@@ -157,14 +144,57 @@ namespace WhatPillsBot.Dialogs
             string replyPhrase = null;
             if (pills != null && pills.Count() > 0)
             {
-                var pillsCard = GenerateCardView.GeneratePillsCard(pills);
+                var pillsCard = GenerateHeroCardView.GeneratePillsCard(pills);
                 replyPhrase = "Here what we found:";
                 activity.Attachments = pillsCard.Select(x => x.ToAttachment()).ToList();
             }
             else
                 replyPhrase = "Something going wrong. We found nothing.";
             activity.Text = replyPhrase;
+            //??
             ResetUserData();
+        }
+
+        public void ReceiveGroups(Activity activity, IEnumerable<PillGroup> groups)
+        {
+            string replyPhrase = null;
+            if (groups != null && groups.Count() > 0)
+            {
+                var pillsCard = GenerateHeroCardView.GenerateGroupsCard(groups);
+                replyPhrase = "Choose the group to get result:";
+                activity.Attachments = pillsCard.Select(x => x.ToAttachment()).ToList();
+            }
+            else
+                replyPhrase = "Something going wrong. We found nothing.";
+            activity.Text = replyPhrase;
+        }
+
+        private void SetActivityTextAndStage(Activity activity, string text, int stage )
+        {
+            activity.Text = text;
+            Stage = stage;
+        }
+
+        private string SearchColorsIdes(string colorsNames)
+        {
+            string result = null;
+            var colors = Colors.Where(x => colorsNames.IndexOf(x.Name, StringComparison.CurrentCultureIgnoreCase) >= 0).Select(x => x.Value);
+            if (colors.Count() > 0)
+                result = string.Join(",", colors);
+            else
+                result = Colors.Where(x => x.Name.Equals("other")).Select(x => x.Value).FirstOrDefault();
+            return result;
+        }
+
+        private string SearchShapeId(string shapeName)
+        {
+            string result = null;
+            var shapes = Shapes.Where(x => shapeName.IndexOf(x.Name, StringComparison.CurrentCultureIgnoreCase) >= 0).Select(x => x.Value).FirstOrDefault();
+            if (!string.IsNullOrEmpty(shapes))
+                result = shapes;
+            else
+                result = Shapes.Where(x => x.Name.Equals("other")).Select(x => x.Value).FirstOrDefault();
+            return result;
         }
 
         private bool isUserAgree(string message)

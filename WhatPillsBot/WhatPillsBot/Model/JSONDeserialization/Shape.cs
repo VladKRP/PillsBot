@@ -1,10 +1,10 @@
 ﻿using Newtonsoft.Json;
 
-namespace WhatPillsBot.Model
+namespace WhatPillsBot.Model.JSONDeserialization
 {
     [System.Serializable]
-    public class Color
-    { 
+    public class Shape
+    {
         [JsonProperty("name")]
         public string Name { get; set; }
 

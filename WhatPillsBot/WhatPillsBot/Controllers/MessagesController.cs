@@ -11,7 +11,7 @@ using WhatPillsBot.Dialogs;
 
 namespace WhatPillsBot
 {
-   // [BotAuthentication]
+    [BotAuthentication]
     public class MessagesController : ApiController
     {
         /// <summary>

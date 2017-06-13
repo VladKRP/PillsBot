@@ -1,5 +1,5 @@
 ﻿using System.Linq;
-using WhatPillsBot.Model;
+using WhatPillsBot.Model.JSONDeserialization;
 
 namespace WhatPillsBot.Extensions
 {
