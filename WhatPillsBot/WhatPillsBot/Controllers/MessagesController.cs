@@ -22,7 +22,7 @@ namespace WhatPillsBot
         {
             if (activity != null && activity.GetActivityType() == ActivityTypes.Message)
             {
-                await Conversation.SendAsync(activity, () => new WhatPillsDialog());
+                await Conversation.SendAsync(activity, () => new PillsRootDialog());
             }
             return new HttpResponseMessage(System.Net.HttpStatusCode.Accepted);
         }

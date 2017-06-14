@@ -136,9 +136,12 @@
   <ItemGroup>
     <Compile Include="App_Start\WebApiConfig.cs" />
     <Compile Include="Controllers\MessagesController.cs" />
-    <Compile Include="Dialogs\WhatPillsDialog.cs" />
+    <Compile Include="Dialogs\PillsByNameDialog.cs" />
+    <Compile Include="Dialogs\PillsByMultipleParametrsDialog.cs" />
+    <Compile Include="Dialogs\PillsRootDialog.cs" />
     <Compile Include="Extensions\GenerateCardView.cs" />
     <Compile Include="Extensions\GenerateTextView.cs" />
+    <Compile Include="Extensions\UserAgreement.cs" />
     <Compile Include="Global.asax.cs">
       <DependentUpon>Global.asax</DependentUpon>
     </Compile>

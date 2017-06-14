@@ -6,11 +6,11 @@ using WhatPillsBot.Model;
 
 namespace WhatPillsBot.Services
 {
-    public static class PillsChecker
+    public class PillsChecker
     {
         const string referer = "https://pill-id.webpoisoncontrol.org/";
 
-        public static Pill GetPill(string id)
+        public Pill GetPill(string id)
         {
             string pillUrl = $"https://api.webpoisoncontrol.org/api/pill/{id}?caseId=1";
             var sitePill = SiteParser.Parser.SendRequest(pillUrl, "GET", referer);
@@ -19,7 +19,7 @@ namespace WhatPillsBot.Services
             return pill;
         }
 
-        public static string GetPillUsage(string id)
+        public string GetPillUsage(string id)
         {
             string pillUrl = $"https://api.webpoisoncontrol.org/api/pill/{id}?caseId=1";
             var sitePill = SiteParser.Parser.SendRequest(pillUrl, "GET", referer);
@@ -27,7 +27,7 @@ namespace WhatPillsBot.Services
             return pill.Usage.Replace("<p>","").Replace("</p>","");
         }
 
-        public static IEnumerable<PillGroup> GetPillGroups(string name)
+        public IEnumerable<PillGroup> GetPillGroups(string name)
         {
             IEnumerable<PillGroup> groups = Enumerable.Empty<PillGroup>();
             var pillSearch = GetPillSearchResultByName(name);
@@ -36,7 +36,7 @@ namespace WhatPillsBot.Services
             return groups;
         }
 
-        public static IEnumerable<Pill> GetPillProducts(string name)
+        public IEnumerable<Pill> GetPillProducts(string name)
         {
             IEnumerable<Pill> pills = Enumerable.Empty<Pill>();
             var pillSearch = GetPillSearchResultByName(name);
@@ -45,7 +45,7 @@ namespace WhatPillsBot.Services
             return pills;
         }
 
-        public static IEnumerable<Pill> GetPillByGroupIdAndName(string id, string name)
+        public IEnumerable<Pill> GetPillByGroupIdAndName(string id, string name)
         {
             IEnumerable<Pill> pills = Enumerable.Empty<Pill>();
             if(!string.IsNullOrEmpty(id) && !string.IsNullOrEmpty(name))
@@ -57,7 +57,7 @@ namespace WhatPillsBot.Services
             return pills;
         }
 
-        public static IEnumerable<Pill> GetPillsByMultipleParametres(UserRequest request)
+        public IEnumerable<Pill> GetPillsByMultipleParametres(UserRequest request)
         {
             IEnumerable<Pill> pills = Enumerable.Empty<Pill>();
             if (request != null)
@@ -69,7 +69,7 @@ namespace WhatPillsBot.Services
             return pills;
         }
 
-        private static PillSearch GetPillSearchResultByName(string name)
+        private PillSearch GetPillSearchResultByName(string name)
         {
             PillSearch pillSearch = null;
             if (name != null)
@@ -81,7 +81,7 @@ namespace WhatPillsBot.Services
             return pillSearch;
         }
 
-        private static bool isAnyProductsReturned(PillSearch entity)
+        private bool isAnyProductsReturned(PillSearch entity)
         {
             bool anyProducts = false;
             if (entity.Products != null)
@@ -89,7 +89,7 @@ namespace WhatPillsBot.Services
             return anyProducts;
         }
         
-        private static bool isAnyGroupsReturned(PillSearch entity)
+        private bool isAnyGroupsReturned(PillSearch entity)
         {
             bool anyGroups = false;
             if (entity.Groups != null)
