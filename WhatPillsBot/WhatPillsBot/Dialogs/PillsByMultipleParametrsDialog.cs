@@ -95,8 +95,8 @@ namespace WhatPillsBot.Dialogs
             if (message.Text.Contains("getpill:"))
             {
                 var pillId = message.Text.Replace("getpill:", "");
-                var pill = new PillsChecker().GetPill(pillId);
-                reply.Attachments.Add(GenerateHeroCardView.GenerateFullPillCard(pill).ToAttachment());
+                var pillUsage = new PillsChecker().GetPillUsage(pillId);
+                reply.Text = pillUsage;
                 await context.PostAsync(reply);
             }
             else

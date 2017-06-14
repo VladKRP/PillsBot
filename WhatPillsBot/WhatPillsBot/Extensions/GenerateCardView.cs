@@ -76,7 +76,7 @@ namespace WhatPillsBot.Extensions
             if (pills != null && pills.Count() > 0)
             {
                 IEnumerable<HeroCard> pillsCard = new List<HeroCard>();
-                if (pills.Count() > 6)
+                if (pills.Count() > 15)
                     pillsCard = GeneratePillsCardWithoutImage(pills);
                 else
                     pillsCard = GeneratePillsCard(pills);

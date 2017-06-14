@@ -38,7 +38,11 @@ namespace WhatPillsBot.Dialogs
                 var groups = pillChecker.GetPillGroups(PillName);
                 if (groups.Count() > 0)
                     reply.Attachments = GenerateHeroCardView.GenerateGroupsResponse(groups).Select(x => x.ToAttachment()).ToList();
-                else reply.Attachments.Add(GenerateHeroCardView.GenerateMessageCard("We found nothing.").ToAttachment());                
+                else
+                {
+                    reply.Attachments.Add(GenerateHeroCardView.GenerateMessageCard("We found nothing.").ToAttachment());
+                    context.Done<object>(new object());
+                }        
             }
             await context.PostAsync(reply);
             context.Wait(ReceiveMultipleInfo);
@@ -63,8 +67,8 @@ namespace WhatPillsBot.Dialogs
             var pillid = message.Text.Replace("getpill:","");
             if (pillid.Count() > 0)
             {
-                var pill = new PillsChecker().GetPill(pillid);
-                reply.Attachments.Add(GenerateHeroCardView.GenerateFullPillCard(pill).ToAttachment());
+                var pillUsage = new PillsChecker().GetPillUsage(pillid);
+                reply.Text = pillUsage;
                 await context.PostAsync(reply);
             }         
         }
