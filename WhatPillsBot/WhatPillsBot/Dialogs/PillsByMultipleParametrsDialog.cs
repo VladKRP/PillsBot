@@ -12,7 +12,7 @@ namespace WhatPillsBot.Dialogs
     [Serializable]
     public class PillsByMultipleParametrsDialog:IDialog<object>
     {
-        protected UserRequest UserRequest = new UserRequest();
+        protected UserMultipleRequest UserRequest = new UserMultipleRequest();
 
         public async Task StartAsync(IDialogContext context)
         {

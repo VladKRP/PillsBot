@@ -1,12 +1,9 @@
 ﻿using Microsoft.Bot.Builder.Dialogs;
 using Microsoft.Bot.Connector;
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using System.Web;
 using WhatPillsBot.Services;
-using WhatPillsBot.Model.JSONDeserialization;
 using WhatPillsBot.Extensions;
 
 namespace WhatPillsBot.Dialogs
@@ -20,10 +17,10 @@ namespace WhatPillsBot.Dialogs
         public async Task StartAsync(IDialogContext context)
         {
             await context.PostAsync("It simplify our search. What is it name? ");
-            context.Wait(PillNameMessageReceived);
+            context.Wait(ReceivedPillName);
         }
 
-        public async Task PillNameMessageReceived(IDialogContext context, IAwaitable<IMessageActivity> argument)
+        public async Task ReceivedPillName(IDialogContext context, IAwaitable<IMessageActivity> argument)
         {
             var message = await argument as Activity;
             var messageText = message.Text;
@@ -45,11 +42,10 @@ namespace WhatPillsBot.Dialogs
                 }        
             }
             await context.PostAsync(reply);
-            context.Wait(ReceiveMultipleInfo);
+            context.Wait(ReceivedMultipleInfo);
         }
 
-
-        public async Task ReceiveMultipleInfo(IDialogContext context, IAwaitable<IMessageActivity> argument)
+        public async Task ReceivedMultipleInfo(IDialogContext context, IAwaitable<IMessageActivity> argument)
         {
             var message = await argument as Activity;
             if (message.Text.Contains("getpill:"))

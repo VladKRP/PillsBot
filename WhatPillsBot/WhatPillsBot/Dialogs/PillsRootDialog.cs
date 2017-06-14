@@ -4,7 +4,6 @@ using System;
 using System.Threading.Tasks;
 using WhatPillsBot.Extensions;
 
-
 namespace WhatPillsBot.Dialogs
 {
     [Serializable]

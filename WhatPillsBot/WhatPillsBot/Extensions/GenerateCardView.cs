@@ -48,27 +48,6 @@ namespace WhatPillsBot.Extensions
         {
             return pills.Select(x => GeneratePillCardWithoutImage(x));
         }
- 
-
-        public static HeroCard AddButton(this HeroCard card, string value)
-        {
-            card.Buttons = new List<CardAction>() { new CardAction("postBack", value: value, title: value) };
-            return card;
-        }
-
-        public static IEnumerable<HeroCard> GenerateGroupsCard(IEnumerable<PillGroup> groups)
-        {
-            return groups.Select(x => GenerateGroupCard(x));               
-        }
-
-        public static  HeroCard GenerateGroupCard(PillGroup group)
-        {
-            return new HeroCard()
-            {
-                Title = group.Name,
-                Tap = new CardAction("postBack", value: "getgroup:" + group.Id)
-            };
-        }
 
         public static IEnumerable<HeroCard> GeneratePillsResponse(IEnumerable<Pill> pills)
         {
@@ -88,6 +67,20 @@ namespace WhatPillsBot.Extensions
             return cards;
         }
 
+        public static  HeroCard GenerateGroupCard(PillGroup group)
+        {
+            return new HeroCard()
+            {
+                Title = group.Name,
+                Tap = new CardAction("postBack", value: "getgroup:" + group.Id)
+            };
+        }
+
+        public static IEnumerable<HeroCard> GenerateGroupsCard(IEnumerable<PillGroup> groups)
+        {
+            return groups.Select(x => GenerateGroupCard(x));
+        }
+
         public static IEnumerable<HeroCard> GenerateGroupsResponse(IEnumerable<PillGroup> groups)
         {
             IEnumerable<HeroCard> cards = Enumerable.Empty<HeroCard>();
@@ -99,6 +92,12 @@ namespace WhatPillsBot.Extensions
             else
                 cards = new List<HeroCard>() { GenerateMessageCard("Something going wrong. We found nothing.") };
             return cards;
+        }
+
+        public static HeroCard AddButton(this HeroCard card, string value)
+        {
+            card.Buttons = new List<CardAction>() { new CardAction("postBack", value: value, title: value) };
+            return card;
         }
 
     }

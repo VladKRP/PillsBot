@@ -57,7 +57,7 @@ namespace WhatPillsBot.Services
             return pills;
         }
 
-        public IEnumerable<Pill> GetPillsByMultipleParametres(UserRequest request)
+        public IEnumerable<Pill> GetPillsByMultipleParametres(UserMultipleRequest request)
         {
             IEnumerable<Pill> pills = Enumerable.Empty<Pill>();
             if (request != null)
