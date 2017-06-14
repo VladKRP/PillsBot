@@ -23,7 +23,7 @@ namespace WhatPillsBot.Dialogs
         public async Task ReceivedColors(IDialogContext context, IAwaitable<IMessageActivity> argument)
         {
             var message = await argument;
-            UserRequest.PillColors = SearchColorsIdes(message.Text);
+            UserRequest.PillColors = VariablesSearcher.SearchColorsIdes(message.Text);
             await context.PostAsync("What shape is it?");
             context.Wait(ReceivedShape);
         }
@@ -31,7 +31,7 @@ namespace WhatPillsBot.Dialogs
         public async Task ReceivedShape(IDialogContext context, IAwaitable<IMessageActivity> argument)
         {
             var message = await argument;
-            UserRequest.PillShape = SearchShapeId(message.Text);
+            UserRequest.PillShape = VariablesSearcher.SearchShapeId(message.Text);
             await context.PostAsync("Is it has any numbers?");
             context.Wait(ReceivedHasNumbers);
         }
@@ -101,30 +101,6 @@ namespace WhatPillsBot.Dialogs
             }
             else
                 context.Done<object>(new object());
-        }
-
-        private string SearchColorsIdes(string colorsNames)
-        {
-            var knownColors = VariablesChecker.Colors;
-            string result = null;
-            var colors = knownColors.Where(x => colorsNames.IndexOf(x.Name, StringComparison.CurrentCultureIgnoreCase) >= 0).Select(x => x.Value);
-            if (colors.Count() > 0)
-                result = string.Join(",", colors);
-            else
-                result = knownColors.Where(x => x.Name.Equals("other")).Select(x => x.Value).FirstOrDefault();
-            return result;
-        }
-
-        private string SearchShapeId(string shapeName)
-        {
-            var knownShapes = VariablesChecker.Shapes;
-            string result = null;
-            var shapes = knownShapes.Where(x => shapeName.IndexOf(x.Name, StringComparison.CurrentCultureIgnoreCase) >= 0).Select(x => x.Value).FirstOrDefault();
-            if (!string.IsNullOrEmpty(shapes))
-                result = shapes;
-            else
-                result = knownShapes.Where(x => x.Name.Equals("other")).Select(x => x.Value).FirstOrDefault();
-            return result;
         }
 
     }
