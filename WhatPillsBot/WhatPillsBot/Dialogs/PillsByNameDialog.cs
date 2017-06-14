@@ -29,7 +29,7 @@ namespace WhatPillsBot.Dialogs
             PillName = messageText;
             var products = pillChecker.GetPillProducts(PillName);
             if (products.Count() > 0)
-                reply.Attachments = GenerateHeroCardView.GeneratePillsResponse(products).Select(x => x.ToAttachment()).ToList(); 
+                reply.Attachments = GenerateHeroCardView.GeneratePillsResponse(products, 3).Select(x => x.ToAttachment()).ToList(); 
             else
             {
                 var groups = pillChecker.GetPillGroups(PillName);
@@ -77,7 +77,7 @@ namespace WhatPillsBot.Dialogs
             if(groupId.Count() > 0)
             {
                 PillGroup = groupId;
-                reply.Attachments = GenerateHeroCardView.GeneratePillsResponse(new PillsChecker().GetPillByGroupIdAndName(PillGroup, PillName)).Select(x => x.ToAttachment()).ToList();
+                reply.Attachments = GenerateHeroCardView.GeneratePillsResponse(new PillsChecker().GetPillByGroupIdAndName(PillGroup, PillName),3).Select(x => x.ToAttachment()).ToList();
                 await context.PostAsync(reply);
             }    
         }

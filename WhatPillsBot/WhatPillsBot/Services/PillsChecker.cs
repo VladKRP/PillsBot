@@ -62,7 +62,7 @@ namespace WhatPillsBot.Services
             IEnumerable<Pill> pills = Enumerable.Empty<Pill>();
             if (request != null)
             {
-                string pillsUrl = $"https://api.webpoisoncontrol.org/api/pillid/?a={request.PillFrontSideId}&b={request.PillBackSideId}&colors={request.PillColors}&shapes={request.PillShape}&q={request.PillName}";
+                string pillsUrl = $"https://api.webpoisoncontrol.org/api/pillid/?a={request.PillFrontSideId}&b={request.PillBackSideId}&colors={request.PillColors}&shapes={request.PillShape}";
                 var sitePills = SiteParser.Parser.SendRequest(pillsUrl, "GET", referer);
                 pills = JsonConvert.DeserializeObject<IEnumerable<Pill>>(sitePills);
             }

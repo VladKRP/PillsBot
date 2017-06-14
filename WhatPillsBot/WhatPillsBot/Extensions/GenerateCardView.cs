@@ -49,17 +49,16 @@ namespace WhatPillsBot.Extensions
             return pills.Select(x => GeneratePillCardWithoutImage(x));
         }
 
-        public static IEnumerable<HeroCard> GeneratePillsResponse(IEnumerable<Pill> pills)
+        public static IEnumerable<HeroCard> GeneratePillsResponse(IEnumerable<Pill> pills, int maxNumberOfShownPills)
         {
+
             IEnumerable<HeroCard> cards = new List<HeroCard>();
             if (pills != null && pills.Count() > 0)
             {
                 IEnumerable<HeroCard> pillsCard = new List<HeroCard>();
-                if (pills.Count() > 15)
-                    pillsCard = GeneratePillsCardWithoutImage(pills);
-                else
-                    pillsCard = GeneratePillsCard(pills);
-                cards = new List<HeroCard>() { GenerateMessageCard("Here what we found:") }.Concat(pillsCard)
+                var result = pills.Count();
+                pillsCard = GeneratePillsCard(pills.Take(maxNumberOfShownPills));
+                cards = new List<HeroCard>() { GenerateMessageCard($"We found {result} pills:") }.Concat(pillsCard)
                     .Concat(new List<HeroCard>() { GenerateMessageCard("To see more info about pill, click on  it.  In another way click on button bellow").AddButton("reset") });
             }
             else

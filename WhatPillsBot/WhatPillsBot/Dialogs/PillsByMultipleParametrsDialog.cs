@@ -47,7 +47,7 @@ namespace WhatPillsBot.Dialogs
             }
             else
             {
-                reply.Attachments = GenerateHeroCardView.GeneratePillsResponse(new PillsChecker().GetPillsByMultipleParametres(UserRequest)).Select(x => x.ToAttachment()).ToList();
+                reply.Attachments = GenerateHeroCardView.GeneratePillsResponse(new PillsChecker().GetPillsByMultipleParametres(UserRequest), 3).Select(x => x.ToAttachment()).ToList();
                 await context.PostAsync(reply);
                 context.Wait(ReceivedPillUsageInfo);
             }              
@@ -72,7 +72,7 @@ namespace WhatPillsBot.Dialogs
             }
             else
             {
-                reply.Attachments = GenerateHeroCardView.GeneratePillsResponse(new PillsChecker().GetPillsByMultipleParametres(UserRequest)).Select(x => x.ToAttachment()).ToList();
+                reply.Attachments = GenerateHeroCardView.GeneratePillsResponse(new PillsChecker().GetPillsByMultipleParametres(UserRequest), 3).Select(x => x.ToAttachment()).ToList();
                 await context.PostAsync(reply);
                 context.Wait(ReceivedPillUsageInfo);
             }
@@ -83,7 +83,7 @@ namespace WhatPillsBot.Dialogs
             var message = await argument as Activity;
             var reply = message.CreateReply();
             UserRequest.PillBackSideId = message.Text;
-            reply.Attachments = GenerateHeroCardView.GeneratePillsResponse(new PillsChecker().GetPillsByMultipleParametres(UserRequest)).Select(x => x.ToAttachment()).ToList();
+            reply.Attachments = GenerateHeroCardView.GeneratePillsResponse(new PillsChecker().GetPillsByMultipleParametres(UserRequest), 3).Select(x => x.ToAttachment()).ToList();
             await context.PostAsync(reply);
             context.Wait(ReceivedPillUsageInfo);
         }

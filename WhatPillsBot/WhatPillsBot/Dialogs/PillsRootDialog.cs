@@ -16,7 +16,7 @@ namespace WhatPillsBot.Dialogs
         }
 
         public async Task MessageReceivedStart(IDialogContext context, IAwaitable<IMessageActivity> argument)
-        {
+        {    
             await context.PostAsync("Do you want to find pill?");
             context.Wait(MessageReceivedFindPillAnswer);
         }
@@ -40,9 +40,20 @@ namespace WhatPillsBot.Dialogs
                 context.Call<object>(new PillsByMultipleParametrsDialog(), AfterChildDialogDone);
         }
 
+        public async Task MessageFeedback(IDialogContext context, IAwaitable<IMessageActivity> argument)
+        {
+            var message = await argument;
+            if (UserAgreement.isUserAgree(message.Text))
+                await context.PostAsync("That great!");
+            else
+                await context.PostAsync("Sorry, I do all I can.");
+            context.Wait(MessageReceivedStart);
+        }
+
         private async Task AfterChildDialogDone(IDialogContext context, IAwaitable<object> argument)
         {
-            context.Wait(MessageReceivedStart);
+            await context.PostAsync("Did you found what you want?");
+            context.Wait(MessageFeedback);
         } 
 
     }
