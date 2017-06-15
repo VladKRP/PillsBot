@@ -12,7 +12,7 @@ namespace WhatPillsBot.Dialogs
     [Serializable]
     public class PillsByMultipleParametrsDialog:IDialog<object>
     {
-        protected UserMultipleRequest UserRequest = new UserMultipleRequest();
+        protected UserMultiplePillRequest UserRequest = new UserMultiplePillRequest();
 
         public async Task StartAsync(IDialogContext context)
         {
@@ -23,7 +23,7 @@ namespace WhatPillsBot.Dialogs
         public async Task ReceivedColors(IDialogContext context, IAwaitable<IMessageActivity> argument)
         {
             var message = await argument;
-            UserRequest.PillColors = VariablesSearcher.SearchColorsIdes(message.Text);
+            UserRequest.Colors = VariablesSearcher.SearchColorsIdes(message.Text);
             await context.PostAsync("What shape is it?");
             context.Wait(ReceivedShape);
         }
@@ -31,7 +31,7 @@ namespace WhatPillsBot.Dialogs
         public async Task ReceivedShape(IDialogContext context, IAwaitable<IMessageActivity> argument)
         {
             var message = await argument;
-            UserRequest.PillShape = VariablesSearcher.SearchShapeId(message.Text);
+            UserRequest.Shape = VariablesSearcher.SearchShapeId(message.Text);
             await context.PostAsync("Is it has any numbers?");
             context.Wait(ReceivedHasNumbers);
         }
@@ -56,7 +56,7 @@ namespace WhatPillsBot.Dialogs
         public async Task ReceivedFirstSideNumber(IDialogContext context, IAwaitable<IMessageActivity> argument)
         {
             var message = await argument;
-            UserRequest.PillFrontSideId = message.Text;
+            UserRequest.FrontSideId = message.Text;
             await context.PostAsync("Now flip pill on another side. Is any number here?");
             context.Wait(ReceivedSecondSideHasNumber);
         }
@@ -82,7 +82,7 @@ namespace WhatPillsBot.Dialogs
         {
             var message = await argument as Activity;
             var reply = message.CreateReply();
-            UserRequest.PillBackSideId = message.Text;
+            UserRequest.BackSideId = message.Text;
             reply.Attachments = GenerateHeroCardView.GeneratePillsResponse(new PillsChecker().GetPillsByMultipleParametres(UserRequest), 3).Select(x => x.ToAttachment()).ToList();
             await context.PostAsync(reply);
             context.Wait(ReceivedPillUsageInfo);

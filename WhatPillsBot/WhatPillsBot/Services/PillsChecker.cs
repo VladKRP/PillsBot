@@ -57,12 +57,12 @@ namespace WhatPillsBot.Services
             return pills;
         }
 
-        public IEnumerable<Pill> GetPillsByMultipleParametres(UserMultipleRequest request)
+        public IEnumerable<Pill> GetPillsByMultipleParametres(UserMultiplePillRequest request)
         {
             IEnumerable<Pill> pills = Enumerable.Empty<Pill>();
             if (request != null)
             {
-                string pillsUrl = $"https://api.webpoisoncontrol.org/api/pillid/?a={request.PillFrontSideId}&b={request.PillBackSideId}&colors={request.PillColors}&shapes={request.PillShape}";
+                string pillsUrl = $"https://api.webpoisoncontrol.org/api/pillid/?a={request.FrontSideId}&b={request.BackSideId}&colors={request.Colors}&shapes={request.Shape}";
                 var sitePills = SiteParser.Parser.SendRequest(pillsUrl, "GET", referer);
                 pills = JsonConvert.DeserializeObject<IEnumerable<Pill>>(sitePills);
             }

@@ -8,6 +8,7 @@ using System.Web.Http.Description;
 using Microsoft.Bot.Connector;
 using Microsoft.Bot.Builder.Dialogs;
 using WhatPillsBot.Dialogs;
+using WhatPillsBot.Dialogs.Luis;
 
 namespace WhatPillsBot
 {
@@ -22,7 +23,7 @@ namespace WhatPillsBot
         {
             if (activity != null && activity.GetActivityType() == ActivityTypes.Message)
             {
-                await Conversation.SendAsync(activity, () => new PillsRootDialog());
+                await Conversation.SendAsync(activity, () => new RootDialog());
             }
             return new HttpResponseMessage(System.Net.HttpStatusCode.Accepted);
         }
