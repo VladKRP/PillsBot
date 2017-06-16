@@ -5,6 +5,7 @@ using Microsoft.Bot.Connector;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 using System.Web;
 using WhatPillsBot.Extensions;
@@ -73,50 +74,23 @@ namespace WhatPillsBot.Dialogs.Luis
             context.Wait(MessageReceived);
         }
 
-        [LuisIntent("SearchPillsByMultipleParamenters")]
+        [LuisIntent("SearchPillsByMultipleParameters")]
         public async Task SearchPillsByMultipleParameters(IDialogContext context, IAwaitable<IMessageActivity> activity, LuisResult result)
         {
+            var message = await activity as Activity;
+            var reply = message.CreateReply();
             var foundedEntities = result.Entities;
-            FillRequestDataByFoundedEntities(foundedEntities);
-            var recognizedUserInput = $"Colors:{pillRequest.Colors}\nShapes:{pillRequest.Shape}\nFrontSideId:{pillRequest.FrontSideId}\nBackSideId:{pillRequest.BackSideId}";
-            PromptDialog.Confirm(context, AddMoreInfo, $"We found that you input {recognizedUserInput}. Do you want to add something?");
-        }
-    
-
-
-        public async Task AddMoreInfo(IDialogContext context, IAwaitable<bool> argument)
-        {
-            if(await argument)
-            {
-                //PromptDialog.Choice<>(context,)
-                //add more info
-                if(string.IsNullOrEmpty(pillRequest.Shape))
-                {
-
-                }
-                if(string.IsNullOrEmpty(pillRequest.Colors))
-                {
-
-                }
-                if (string.IsNullOrEmpty(pillRequest.FrontSideId))
-                {
-
-                }
-                if (string.IsNullOrEmpty(pillRequest.BackSideId))
-                {
-
-                }
-
-            }
-            else
-            {
-                //context.Wait(ShowPillsByMultipleParameters);
-                //show pills
-            }
-
+            pillRequest = FillRequestDataByFoundedEntities(foundedEntities);
+            var recognizedUserInput = GenerateStringFromPillRequestData(pillRequest);
+            pillRequest.Colors = pillRequest.Colors == "" ? "" : VariablesSearcher.SearchColorsIdes(pillRequest.Colors);
+            pillRequest.Shape = pillRequest.Shape == "" ? "" : VariablesSearcher.SearchShapeId(pillRequest.Shape);
+            reply.Attachments = new List<Attachment>() { GenerateHeroCardView.GenerateMessageCard($"I found that you input \n{ recognizedUserInput}").AddButton("Add more info").AddButton("Show result").ToAttachment() };
+            await context.PostAsync(reply);
+            context.Wait(MessageReceived);
         }
 
-        public async Task ShowPillsByMultipleParameters(IDialogContext context, IAwaitable<IDialogContext> argument)
+        [LuisIntent("ShowPillsByMultipleParameters")]
+        public async Task ShowPillsByMultipleParameters(IDialogContext context, IAwaitable<IMessageActivity> argument, LuisResult result)
         {
             var message = await argument as Activity;
             var reply = message.CreateReply();
@@ -125,24 +99,132 @@ namespace WhatPillsBot.Dialogs.Luis
             context.Wait(MessageReceived);
         }
 
-        private void FillRequestDataByFoundedEntities(IList<EntityRecommendation> entities)
+        [LuisIntent("AddMoreInfo")]
+        public async Task AddMoreInfo(IDialogContext context, IAwaitable<IMessageActivity> argument, LuisResult result)
         {
-            if (entities.Any(x => x.Type.Equals("Shape")))
-                pillRequest.Shape = VariablesSearcher.SearchShapeId(entities.Where(x => x.Type.Equals("Shape")).Select(x => x.Entity.ToString()).FirstOrDefault());
-            if (entities.Any(x => x.Type.Equals("Color")))
-                pillRequest.Colors = VariablesSearcher.SearchColorsIdes(entities.Where(x => x.Type.Equals("Color")).Select(x => x.Entity.ToString()).Aggregate("", (x, y) => x += y));
-            if (entities.Any(x => x.Type.Equals("FrontSideId")))
-                pillRequest.FrontSideId = entities.Where(x => x.Type.Equals("FrontSideId")).Select(x => x.Entity.ToString()).FirstOrDefault();
-            if (entities.Any(x => x.Type.Equals("BackSideId")))
-                pillRequest.BackSideId = entities.Where(x => x.Type.Equals("BackSideId")).Select(x => x.Entity.ToString()).FirstOrDefault();
+            var message = await argument as Activity;
+            var reply = message.CreateReply();
+            reply.Attachments = new List<Attachment>() { GenerateHeroCardView.GenerateMessageCard($"Choose what you want to add.\n\n").AddButtons(GenerateNotFilledData(pillRequest)).ToAttachment() };
+            await context.PostAsync(reply);
+            context.Wait(MessageReceived);
+        }
+
+        [LuisIntent("SetColor")]
+        public async Task SetColor(IDialogContext context, IAwaitable<IMessageActivity> argument, LuisResult result)
+        {
+            await context.PostAsync("Please enter color");
+            context.Wait(ColorReceived);   
+        }
+
+        public async Task ColorReceived(IDialogContext context, IAwaitable<IMessageActivity> argument)
+        {
+            var message = await argument;
+            pillRequest.Colors = VariablesSearcher.SearchColorsIdes(message.Text);
+            await ShowPillsByMultipleParameters(context, argument, new LuisResult());
+            context.Wait(MessageReceived);
+        }
+
+        [LuisIntent("SetShape")]
+        public async Task SetShape(IDialogContext context, IAwaitable<IMessageActivity> argument, LuisResult result)
+        {
+            await context.PostAsync("Please enter shape");
+            context.Wait(ShapeReceived);
+        }
+
+        public async Task ShapeReceived(IDialogContext context, IAwaitable<IMessageActivity> argument)
+        {
+            var message = await argument;
+            pillRequest.Shape = VariablesSearcher.SearchShapeId(message.Text);
+            await ShowPillsByMultipleParameters(context, argument, new LuisResult());
+            context.Wait(MessageReceived);
+        }
+
+        [LuisIntent("SetFrontSideId")]
+        public async Task SetFrontSideId(IDialogContext context, IAwaitable<IMessageActivity> argument, LuisResult result)
+        {
+            await context.PostAsync("Please enter first side number");
+            context.Wait(FrontSideIdReceived); 
+        }
+
+        public async Task FrontSideIdReceived(IDialogContext context, IAwaitable<IMessageActivity> argument)
+        {
+            var message = await argument;
+            pillRequest.FrontSideId = message.Text;
+            await ShowPillsByMultipleParameters(context, argument, new LuisResult());
+            context.Wait(MessageReceived);
+        }
+
+      
+        [LuisIntent("SetBackSideId")]
+        public async Task SetBackSideId(IDialogContext context, IAwaitable<IMessageActivity> argument, LuisResult result)
+        {
+            await context.PostAsync("Please enter second side number");
+            context.Wait(BackSideIdReceived);
+        }
+
+        public async Task BackSideIdReceived(IDialogContext context, IAwaitable<IMessageActivity> argument)
+        {
+            var message = await argument;
+            pillRequest.FrontSideId = message.Text;
+            await ShowPillsByMultipleParameters(context, argument, new LuisResult());
+            context.Wait(MessageReceived);
+        }
+
+
+        [LuisIntent("Reset")]
+        public async Task Reset(IDialogContext context, IAwaitable<IMessageActivity> activity, LuisResult result)
+        {
+            await context.PostAsync("Thank for collaboration :)");
+            context.Done<object>(new object());
         }
 
         [LuisIntent("")]
         public async Task None(IDialogContext context, IAwaitable<IMessageActivity> activity, LuisResult result)
         {
-            await context.PostAsync("I have no idea what are you talking about");
-            context.Wait(MessageReceived);
+            await context.PostAsync("Sorry, I don't understand what are you talking about.");
+            context.Done<object>(new object());
         }
 
+        private UserMultiplePillRequest FillRequestDataByFoundedEntities(IList<EntityRecommendation> entities)
+        {
+            UserMultiplePillRequest request = new UserMultiplePillRequest();
+            if (entities.Any(x => x.Type.Equals("Shape")))
+                request.Shape = entities.Where(x => x.Type.Equals("Shape")).Select(x => x.Entity.ToString()).FirstOrDefault();
+            if (entities.Any(x => x.Type.Equals("Color")))
+                request.Colors = entities.Where(x => x.Type.Equals("Color")).Select(x => x.Entity.ToString()).Aggregate("", (x, y) => x += y);
+            if (entities.Any(x => x.Type.Equals("FrontSideId")))
+                request.FrontSideId = entities.Where(x => x.Type.Equals("FrontSideId")).Select(x => x.Entity.ToString()).FirstOrDefault();
+            if (entities.Any(x => x.Type.Equals("BackSideId")))
+                request.BackSideId = entities.Where(x => x.Type.Equals("BackSideId")).Select(x => x.Entity.ToString()).FirstOrDefault();
+            return request;
+        }
+
+        private Dictionary<string,string> GenerateNotFilledData(UserMultiplePillRequest request)
+        {
+            var notFilledParams = new Dictionary<string, string>();
+            if (string.IsNullOrEmpty(request.Colors))
+                notFilledParams.Add("Color", "set color");
+            if (string.IsNullOrEmpty(request.Shape))
+                notFilledParams.Add("Shape", "set shape");
+            if (string.IsNullOrEmpty(request.FrontSideId))
+                notFilledParams.Add("Front side number", "set frontSideId");
+            if (string.IsNullOrEmpty(request.BackSideId))
+                notFilledParams.Add("Back side number", "set backSideId");
+            return notFilledParams;
+        }
+
+        private string GenerateStringFromPillRequestData(UserMultiplePillRequest request)
+        {
+            StringBuilder result = new StringBuilder();
+            if (!string.IsNullOrEmpty(request.Colors))
+                result.Append($"Colors: {request.Colors}\n");
+            if (!string.IsNullOrEmpty(request.Shape))
+                result.Append($"Shape: {request.Shape}\n");
+            if (!string.IsNullOrEmpty(request.FrontSideId))
+                result.Append($"Front side number: {request.FrontSideId}\n");
+            if (!string.IsNullOrEmpty(request.BackSideId))
+                result.Append($"Back side number: {request.BackSideId}");
+            return result.ToString();
+        }
     }
 }

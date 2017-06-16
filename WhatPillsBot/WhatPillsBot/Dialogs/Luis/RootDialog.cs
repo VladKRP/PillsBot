@@ -18,7 +18,7 @@ namespace WhatPillsBot.Dialogs.Luis
 
         public async Task ReceiveStart(IDialogContext context, IAwaitable<IMessageActivity> argument)
         {
-            await context.PostAsync("Hey. My meaning in searching pills.\nJust enter some information about pill, it can be name or shape, color, numbers on pill sides. I try to find pills for you ;)");
+            await context.PostAsync("Hey. My meaning is searching pills.\n\nJust enter some information about pill.\n\nIt can be name or shape, colors, numbers on pill sides.\n\nI hope I will be helpfull for you ;)");
             context.Call(new PillsLuisDialog(), ReturnToStartDialog);
         }
 

@@ -18,9 +18,9 @@ namespace WhatPillsBot.Extensions
             {
                 Images = new List<CardImage>() { new CardImage(pill.ImageUrl) },
                 Title = pill.GroupName,
-                Subtitle = $"Imprint: {pill.Imprint}\r\n{GenerateTextView.GeneratePillIngredientsString(pill)}",
-                Text = $"shape:{pill.Shape}\tcolors: {GenerateTextView.GeneratePillColorsString(pill)}",
-                Tap = new CardAction("postBack",  value: "getpill:" + pill.Id)
+                Subtitle = $"Imprint: {pill.Imprint}\n{GenerateTextView.GeneratePillIngredientsString(pill)}",
+                Text = $"shape: {pill.Shape}\ncolors: {GenerateTextView.GeneratePillColorsString(pill)}\n",
+                Tap = new CardAction("postBack",  value: $"getpill:{pill.Id}")
             };
             return card;
         }
@@ -58,8 +58,8 @@ namespace WhatPillsBot.Extensions
                 IEnumerable<HeroCard> pillsCard = new List<HeroCard>();
                 var result = pills.Count();
                 pillsCard = GeneratePillsCard(pills.Take(maxNumberOfShownPills));
-                cards = new List<HeroCard>() { GenerateMessageCard($"We found {result} pills:") }.Concat(pillsCard)
-                    .Concat(new List<HeroCard>() { GenerateMessageCard("To see more info about pill, click on  it.  In another way click on button bellow").AddButton("reset") });
+                cards = new List<HeroCard>() { GenerateMessageCard($"The result is {result} pill(s):") }.Concat(pillsCard)
+                    .Concat(new List<HeroCard>() { GenerateMessageCard("To see more information about pill, click on it.\nIn another way click on button bellow").AddButton("reset") });
             }
             else
                 cards = new List<HeroCard>() { GenerateMessageCard("Something going wrong. We found nothing.") };
@@ -71,7 +71,7 @@ namespace WhatPillsBot.Extensions
             return new HeroCard()
             {
                 Title = group.Name,
-                Tap = new CardAction("postBack", value: "getgroup:" + group.Id)
+                Tap = new CardAction("postBack", value: $"getgroup:({group.Id})")
             };
         }
 
@@ -93,11 +93,26 @@ namespace WhatPillsBot.Extensions
             return cards;
         }
 
-        public static HeroCard AddButton(this HeroCard card, string value)
+        public static HeroCard AddButtons(this HeroCard card, Dictionary<string,string> buttonParams)
         {
-            card.Buttons = new List<CardAction>() { new CardAction("postBack", value: value, title: value) };
+            var buttons = buttonParams.Select(x => new CardAction("postBack", title: x.Key, value: x.Value));
+            if (card.Buttons == null)
+                card.Buttons = buttons.ToList();
+            else
+                card.Buttons = card.Buttons.Concat(buttons).ToList();
             return card;
         }
+
+        public static HeroCard AddButton(this HeroCard card, string value, string title = null)
+        {
+            var buttons = new List<CardAction>() { new CardAction("postBack", value: value, title: title == null ? value : title) };
+            if (card.Buttons == null)
+                card.Buttons = buttons;
+            else
+                card.Buttons = card.Buttons.Concat(buttons).ToList();
+            return card;
+        }
+
 
     }
 }
