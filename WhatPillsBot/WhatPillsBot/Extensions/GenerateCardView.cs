@@ -51,19 +51,33 @@ namespace WhatPillsBot.Extensions
 
         public static IEnumerable<HeroCard> GeneratePillsResponse(IEnumerable<Pill> pills, int maxNumberOfShownPills)
         {
-
             IEnumerable<HeroCard> cards = new List<HeroCard>();
             if (pills != null && pills.Count() > 0)
             {
-                IEnumerable<HeroCard> pillsCard = new List<HeroCard>();
                 var result = pills.Count();
-                pillsCard = GeneratePillsCard(pills.Take(maxNumberOfShownPills));
-                cards = new List<HeroCard>() { GenerateMessageCard($"The result is {result} pill(s):") }.Concat(pillsCard)
-                    .Concat(new List<HeroCard>() { GenerateMessageCard("To see more information about pill, click on it.\nIn another way click on button bellow").AddButton("reset") });
+                var pillsCard = GeneratePillsCard(pills.Take(maxNumberOfShownPills));
+                cards = new List<HeroCard>() { GenerateMessageCard($"The result is {result} pill(s):") }.Concat(pillsCard);
+                if (pills.Count() > maxNumberOfShownPills)
+                    cards = cards.Concat(new List<HeroCard>() { GenerateMessageCard("To see more information about pill, click on it.\nTo show more pills click on button bellow")
+                        .AddButton("show more")
+                        .AddButton("reset") });  
             }
             else
                 cards = new List<HeroCard>() { GenerateMessageCard("Something going wrong. We found nothing.") };
             return cards;
+        }
+
+        public static IEnumerable<HeroCard> GenerateShowMoreResponse(IEnumerable<Pill> pills, int numberOfSkipedPills, int numberOfShownPills)
+        {
+            IEnumerable<HeroCard> cards = Enumerable.Empty<HeroCard>();
+            var countOfRemainedPills = pills.Count() - numberOfSkipedPills;
+            if (countOfRemainedPills < numberOfShownPills)
+                cards = GeneratePillsCard(pills.Skip(numberOfSkipedPills).Take(countOfRemainedPills));
+            else
+                cards = GeneratePillsCard(pills.Skip(numberOfSkipedPills).Take(numberOfShownPills));
+            return cards.Concat(new List<HeroCard>() { GenerateMessageCard("To see more information about pill, click on it.\nTo show more pills click on button bellow")
+                .AddButton($"show more")
+                .AddButton("reset") });
         }
 
         public static  HeroCard GenerateGroupCard(PillGroup group)
@@ -112,7 +126,6 @@ namespace WhatPillsBot.Extensions
                 card.Buttons = card.Buttons.Concat(buttons).ToList();
             return card;
         }
-
 
     }
 }

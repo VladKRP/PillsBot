@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using System.Web;
 using WhatPillsBot.Extensions;
 using WhatPillsBot.Model;
+using WhatPillsBot.Model.JSONDeserialization;
 using WhatPillsBot.Services;
 
 namespace WhatPillsBot.Dialogs.Luis
@@ -19,6 +20,9 @@ namespace WhatPillsBot.Dialogs.Luis
     public class PillsLuisDialog:LuisDialog<object>
     {
         protected UserMultiplePillRequest pillRequest = new UserMultiplePillRequest();
+        protected IEnumerable<Pill> Pills { get; set; }
+        protected int skipFactor = 3;
+        const int countOfShownMorePills = 3;
 
         [LuisIntent("SearchPillsByName")]
         public async Task SearchPillsByName(IDialogContext context, IAwaitable<IMessageActivity> activity, LuisResult result)
@@ -27,15 +31,15 @@ namespace WhatPillsBot.Dialogs.Luis
             pillRequest.Name  = foundedEntities.TakeWhile(x => x.Type.Equals("PillName")).Select(x => x.Entity.ToString()).FirstOrDefault();
             await ShowPillsByName(context, activity);
         }
-
+        
         public async Task ShowPillsByName(IDialogContext context, IAwaitable<IMessageActivity> argument)
         {
             var message = await argument as Activity;
             var reply = message.CreateReply();
             var pillChecker = new PillsChecker();
-            var products = pillChecker.GetPillProducts(pillRequest.Name);
-            if (products.Count() > 0)
-                reply.Attachments = GenerateHeroCardView.GeneratePillsResponse(products, 3).Select(x => x.ToAttachment()).ToList();
+            Pills = pillChecker.GetPillProducts(pillRequest.Name);
+            if (Pills.Count() > 0)
+                reply.Attachments = GenerateHeroCardView.GeneratePillsResponse(Pills, 3).Select(x => x.ToAttachment()).ToList();
             else
             {
                 var groups = pillChecker.GetPillGroups(pillRequest.Name);
@@ -69,7 +73,8 @@ namespace WhatPillsBot.Dialogs.Luis
             var reply = message.CreateReply();
             var groupId = result.Entities.Where(x => x.Type.Equals("GroupId")).Select(x => x.Entity).FirstOrDefault();
             pillRequest.Group = groupId;
-            reply.Attachments = GenerateHeroCardView.GeneratePillsResponse(new PillsChecker().GetPillByGroupIdAndName(pillRequest.Group, pillRequest.Name), 3).Select(x => x.ToAttachment()).ToList();
+            Pills = new PillsChecker().GetPillByGroupIdAndName(pillRequest.Group, pillRequest.Name);
+            reply.Attachments = GenerateHeroCardView.GeneratePillsResponse(Pills , 3).Select(x => x.ToAttachment()).ToList();
             await context.PostAsync(reply);
             context.Wait(MessageReceived);
         }
@@ -94,7 +99,8 @@ namespace WhatPillsBot.Dialogs.Luis
         {
             var message = await argument as Activity;
             var reply = message.CreateReply();
-            reply.Attachments = GenerateHeroCardView.GeneratePillsResponse(new PillsChecker().GetPillsByMultipleParametres(pillRequest), 3).Select(x => x.ToAttachment()).ToList();
+            Pills = new PillsChecker().GetPillsByMultipleParametres(pillRequest);
+            reply.Attachments = GenerateHeroCardView.GeneratePillsResponse(Pills, 3).Select(x => x.ToAttachment()).ToList();
             await context.PostAsync(reply);
             context.Wait(MessageReceived);
         }
@@ -121,7 +127,6 @@ namespace WhatPillsBot.Dialogs.Luis
             var message = await argument;
             pillRequest.Colors = VariablesSearcher.SearchColorsIdes(message.Text);
             await ShowPillsByMultipleParameters(context, argument, new LuisResult());
-            context.Wait(MessageReceived);
         }
 
         [LuisIntent("SetShape")]
@@ -136,40 +141,36 @@ namespace WhatPillsBot.Dialogs.Luis
             var message = await argument;
             pillRequest.Shape = VariablesSearcher.SearchShapeId(message.Text);
             await ShowPillsByMultipleParameters(context, argument, new LuisResult());
-            context.Wait(MessageReceived);
         }
 
-        [LuisIntent("SetFrontSideId")]
-        public async Task SetFrontSideId(IDialogContext context, IAwaitable<IMessageActivity> argument, LuisResult result)
+        [LuisIntent("SetSide")]
+        public async Task SetSide(IDialogContext context, IAwaitable<IMessageActivity> argument, LuisResult result)
         {
-            await context.PostAsync("Please enter first side number");
-            context.Wait(FrontSideIdReceived); 
+            await context.PostAsync("Please enter number");
+            context.Wait(SideIdReceived);
         }
 
-        public async Task FrontSideIdReceived(IDialogContext context, IAwaitable<IMessageActivity> argument)
+        public async Task SideIdReceived(IDialogContext context, IAwaitable<IMessageActivity> argument)
         {
             var message = await argument;
-            pillRequest.FrontSideId = message.Text;
+            if (string.IsNullOrEmpty(pillRequest.FrontSideId))
+                pillRequest.FrontSideId = message.Text;
+            else
+                pillRequest.BackSideId = message.Text;
             await ShowPillsByMultipleParameters(context, argument, new LuisResult());
             context.Wait(MessageReceived);
         }
 
-      
-        [LuisIntent("SetBackSideId")]
-        public async Task SetBackSideId(IDialogContext context, IAwaitable<IMessageActivity> argument, LuisResult result)
+        [LuisIntent("ShowNumberMore")]
+        public async Task ShowAll(IDialogContext context, IAwaitable<IMessageActivity> argument, LuisResult result)
         {
-            await context.PostAsync("Please enter second side number");
-            context.Wait(BackSideIdReceived);
-        }
-
-        public async Task BackSideIdReceived(IDialogContext context, IAwaitable<IMessageActivity> argument)
-        {
-            var message = await argument;
-            pillRequest.FrontSideId = message.Text;
-            await ShowPillsByMultipleParameters(context, argument, new LuisResult());
+            var message = await argument as Activity;
+            var reply = message.CreateReply();
+            reply.Attachments =  GenerateHeroCardView.GenerateShowMoreResponse(Pills,skipFactor, countOfShownMorePills).Select(x => x.ToAttachment()).ToList();
+            skipFactor += countOfShownMorePills;
+            await context.PostAsync(reply);
             context.Wait(MessageReceived);
         }
-
 
         [LuisIntent("Reset")]
         public async Task Reset(IDialogContext context, IAwaitable<IMessageActivity> activity, LuisResult result)

@@ -13,12 +13,12 @@ namespace WhatPillsBot.Model
 
         public UserMultiplePillRequest()
         {
-            Name = "";
-            Group = "";
-            FrontSideId = "";
-            BackSideId = "";
-            Shape = "";
-            Colors = "";
+            Name = string.Empty;
+            Group = string.Empty;
+            FrontSideId = string.Empty;
+            BackSideId = string.Empty;
+            Shape = string.Empty;
+            Colors = string.Empty;
         }
     }
 }

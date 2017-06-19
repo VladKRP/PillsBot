@@ -8,11 +8,12 @@ namespace WhatPillsBot.Services
 {
     public class PillsChecker
     {
-        const string referer = "https://pill-id.webpoisoncontrol.org/";
+        protected readonly string referer = "https://pill-id.webpoisoncontrol.org/";
+        protected readonly string siteUrl = "https://api.webpoisoncontrol.org";
 
         public Pill GetPill(string id)
         {
-            string pillUrl = $"https://api.webpoisoncontrol.org/api/pill/{id}?caseId=1";
+            string pillUrl = $"{siteUrl}/api/pill/{id}?caseId=1";
             var sitePill = SiteParser.Parser.SendRequest(pillUrl, "GET", referer);
             var pill = JsonConvert.DeserializeObject<Pill>(sitePill);
             pill.Usage = pill.Usage.Replace("<p>", "").Replace("</p>", "");
@@ -21,7 +22,7 @@ namespace WhatPillsBot.Services
 
         public string GetPillUsage(string id)
         {
-            string pillUrl = $"https://api.webpoisoncontrol.org/api/pill/{id}?caseId=1";
+            string pillUrl = $"{siteUrl}/api/pill/{id}?caseId=1";
             var sitePill = SiteParser.Parser.SendRequest(pillUrl, "GET", referer);
             var pill = JsonConvert.DeserializeObject<Pill>(sitePill);
             return pill.Usage.Replace("<p>","").Replace("</p>","");
@@ -50,7 +51,7 @@ namespace WhatPillsBot.Services
             IEnumerable<Pill> pills = Enumerable.Empty<Pill>();
             if(!string.IsNullOrEmpty(id) && !string.IsNullOrEmpty(name))
             {
-                string pillsUrl = $"https://api.webpoisoncontrol.org/api/pillgroups?id={id}&search={name}";
+                string pillsUrl = $"{siteUrl}/api/pillgroups?id={id}&search={name}";
                 var sitePills = SiteParser.Parser.SendRequest(pillsUrl, "GET", referer);
                 pills = JsonConvert.DeserializeObject<IEnumerable<Pill>>(sitePills);
             }
@@ -62,7 +63,7 @@ namespace WhatPillsBot.Services
             IEnumerable<Pill> pills = Enumerable.Empty<Pill>();
             if (request != null)
             {
-                string pillsUrl = $"https://api.webpoisoncontrol.org/api/pillid/?a={request.FrontSideId}&b={request.BackSideId}&colors={request.Colors}&shapes={request.Shape}";
+                string pillsUrl = $"{siteUrl}/api/pillid/?a={request.FrontSideId}&b={request.BackSideId}&colors={request.Colors}&shapes={request.Shape}";
                 var sitePills = SiteParser.Parser.SendRequest(pillsUrl, "GET", referer);
                 pills = JsonConvert.DeserializeObject<IEnumerable<Pill>>(sitePills);
             }
@@ -74,7 +75,7 @@ namespace WhatPillsBot.Services
             PillSearch pillSearch = null;
             if (name != null)
             {
-                string pillsUrl = $"https://api.webpoisoncontrol.org/api/pillsearch/?search={name}";
+                string pillsUrl = $"{siteUrl}/api/pillsearch/?search={name}";
                 var sitePills = SiteParser.Parser.SendRequest(pillsUrl, "GET", referer);
                 pillSearch = JsonConvert.DeserializeObject<PillSearch>(sitePills);
             }
@@ -96,6 +97,5 @@ namespace WhatPillsBot.Services
                 anyGroups = true;
             return anyGroups;
         }
-
     }
 }
