@@ -17,21 +17,35 @@ namespace WhatPillsBot.Dialogs.Luis
 {
     [LuisModel("d79b7e46-7b62-4a37-b582-c6a5a4a42289", "86cb2f447fc34bed9e2084c761a480d6")]
     [Serializable]
-    public class PillsLuisDialog:LuisDialog<object>
+    public class PillsLuisDialog : LuisDialog<object>
     {
         protected UserMultiplePillRequest pillRequest = new UserMultiplePillRequest();
         protected IEnumerable<Pill> Pills { get; set; }
         protected int skipFactor = 3;
         const int countOfShownMorePills = 3;
 
+        [LuisIntent("Welcome")]
+        public async Task Welcome(IDialogContext context, IAwaitable<IMessageActivity> activity, LuisResult result)
+        {
+            await context.PostAsync("Hey. My meaning is searching pills.\n\nJust enter some information about pill.\n\nIt can be name or shape, colors, numbers on pill sides.\n\nI hope I will be helpfull for you ;)");
+            context.Wait(MessageReceived);
+        }
+
         [LuisIntent("SearchPillsByName")]
         public async Task SearchPillsByName(IDialogContext context, IAwaitable<IMessageActivity> activity, LuisResult result)
-        {        
+        {
+            ClearData();
             var foundedEntities = result.Entities;
-            pillRequest.Name  = foundedEntities.TakeWhile(x => x.Type.Equals("PillName")).Select(x => x.Entity.ToString()).FirstOrDefault();
-            await ShowPillsByName(context, activity);
+            pillRequest.Name = foundedEntities.TakeWhile(x => x.Type.Equals("PillName")).Select(x => x.Entity.ToString()).FirstOrDefault();   
+            if(string.IsNullOrEmpty(pillRequest.Name))
+            {
+                await context.PostAsync("Name not defined");
+                context.Wait(MessageReceived);
+            }
+            else
+                await ShowPillsByName(context, activity);
         }
-        
+
         public async Task ShowPillsByName(IDialogContext context, IAwaitable<IMessageActivity> argument)
         {
             var message = await argument as Activity;
@@ -47,8 +61,7 @@ namespace WhatPillsBot.Dialogs.Luis
                     reply.Attachments = GenerateHeroCardView.GenerateGroupsResponse(groups).Select(x => x.ToAttachment()).ToList();
                 else
                 {
-                    reply.Attachments.Add(GenerateHeroCardView.GenerateMessageCard("We found nothing.").ToAttachment());
-                    context.Done<object>(new object());
+                    reply.Attachments.Add(GenerateHeroCardView.GenerateMessageCard("I found nothing.").ToAttachment());
                 }
             }
             await context.PostAsync(reply);
@@ -74,7 +87,7 @@ namespace WhatPillsBot.Dialogs.Luis
             var groupId = result.Entities.Where(x => x.Type.Equals("GroupId")).Select(x => x.Entity).FirstOrDefault();
             pillRequest.Group = groupId;
             Pills = new PillsChecker().GetPillByGroupIdAndName(pillRequest.Group, pillRequest.Name);
-            reply.Attachments = GenerateHeroCardView.GeneratePillsResponse(Pills , 3).Select(x => x.ToAttachment()).ToList();
+            reply.Attachments = GenerateHeroCardView.GeneratePillsResponse(Pills, 3).Select(x => x.ToAttachment()).ToList();
             await context.PostAsync(reply);
             context.Wait(MessageReceived);
         }
@@ -82,16 +95,16 @@ namespace WhatPillsBot.Dialogs.Luis
         [LuisIntent("SearchPillsByMultipleParameters")]
         public async Task SearchPillsByMultipleParameters(IDialogContext context, IAwaitable<IMessageActivity> activity, LuisResult result)
         {
+            ClearData();
             var message = await activity as Activity;
             var reply = message.CreateReply();
             var foundedEntities = result.Entities;
             pillRequest = FillRequestDataByFoundedEntities(foundedEntities);
-            var recognizedUserInput = GenerateStringFromPillRequestData(pillRequest);
-            pillRequest.Colors = pillRequest.Colors == "" ? "" : VariablesSearcher.SearchColorsIdes(pillRequest.Colors);
-            pillRequest.Shape = pillRequest.Shape == "" ? "" : VariablesSearcher.SearchShapeId(pillRequest.Shape);
-            reply.Attachments = new List<Attachment>() { GenerateHeroCardView.GenerateMessageCard($"I found that you input \n{ recognizedUserInput}").AddButton("Add more info").AddButton("Show result").ToAttachment() };
-            await context.PostAsync(reply);
-            context.Wait(MessageReceived);
+            //var recognizedUserInput = GenerateStringFromPillRequestData(pillRequest);
+            //pillRequest.Colors = pillRequest.Colors == "" ? "" : VariablesSearcher.SearchColorsIdes(pillRequest.Colors);
+            //pillRequest.Shape = pillRequest.Shape == "" ? "" : VariablesSearcher.SearchShapeId(pillRequest.Shape);
+            //reply.Attachments = new List<Attachment>() { GenerateHeroCardView.GenerateMessageCard($"I found that you input \n{ recognizedUserInput}").AddButton("Add more info").AddButton("Show result").ToAttachment() };
+            await ShowPillsByMultipleParameters(context, activity, result);
         }
 
         [LuisIntent("ShowPillsByMultipleParameters")]
@@ -100,17 +113,20 @@ namespace WhatPillsBot.Dialogs.Luis
             var message = await argument as Activity;
             var reply = message.CreateReply();
             Pills = new PillsChecker().GetPillsByMultipleParametres(pillRequest);
-            reply.Attachments = GenerateHeroCardView.GeneratePillsResponse(Pills, 3).Select(x => x.ToAttachment()).ToList();
+            var attachments = GenerateHeroCardView.GeneratePillsResponse(Pills, 3);
+            if(attachments.Count() > countOfShownMorePills)
+                attachments.Last().AddButton("refine");
+            reply.Attachments = attachments.Select(x => x.ToAttachment()).ToList();
             await context.PostAsync(reply);
             context.Wait(MessageReceived);
         }
 
-        [LuisIntent("AddMoreInfo")]
-        public async Task AddMoreInfo(IDialogContext context, IAwaitable<IMessageActivity> argument, LuisResult result)
+        [LuisIntent("Refine")]
+        public async Task Refine(IDialogContext context, IAwaitable<IMessageActivity> argument, LuisResult result)
         {
             var message = await argument as Activity;
             var reply = message.CreateReply();
-            reply.Attachments = new List<Attachment>() { GenerateHeroCardView.GenerateMessageCard($"Choose what you want to add.\n\n").AddButtons(GenerateNotFilledData(pillRequest)).ToAttachment() };
+            reply.Attachments = new List<Attachment>() { GenerateHeroCardView.GenerateMessageCard($"Choose what you want to add\n\n").AddButtons(GenerateNotFilledData(pillRequest)).ToAttachment() };
             await context.PostAsync(reply);
             context.Wait(MessageReceived);
         }
@@ -119,7 +135,7 @@ namespace WhatPillsBot.Dialogs.Luis
         public async Task SetColor(IDialogContext context, IAwaitable<IMessageActivity> argument, LuisResult result)
         {
             await context.PostAsync("Please enter color");
-            context.Wait(ColorReceived);   
+            context.Wait(ColorReceived);
         }
 
         public async Task ColorReceived(IDialogContext context, IAwaitable<IMessageActivity> argument)
@@ -146,11 +162,11 @@ namespace WhatPillsBot.Dialogs.Luis
         [LuisIntent("SetSide")]
         public async Task SetSide(IDialogContext context, IAwaitable<IMessageActivity> argument, LuisResult result)
         {
-            await context.PostAsync("Please enter number");
-            context.Wait(SideIdReceived);
+            await context.PostAsync("Please enter imprint");
+            context.Wait(SideImprintReceived);
         }
 
-        public async Task SideIdReceived(IDialogContext context, IAwaitable<IMessageActivity> argument)
+        public async Task SideImprintReceived(IDialogContext context, IAwaitable<IMessageActivity> argument)
         {
             var message = await argument;
             if (string.IsNullOrEmpty(pillRequest.FrontSideId))
@@ -158,41 +174,46 @@ namespace WhatPillsBot.Dialogs.Luis
             else
                 pillRequest.BackSideId = message.Text;
             await ShowPillsByMultipleParameters(context, argument, new LuisResult());
-            context.Wait(MessageReceived);
         }
 
-        [LuisIntent("ShowNumberMore")]
-        public async Task ShowAll(IDialogContext context, IAwaitable<IMessageActivity> argument, LuisResult result)
+        [LuisIntent("ShowMore")]
+        public async Task ShowMore(IDialogContext context, IAwaitable<IMessageActivity> argument, LuisResult result)
         {
             var message = await argument as Activity;
             var reply = message.CreateReply();
-            reply.Attachments =  GenerateHeroCardView.GenerateShowMoreResponse(Pills,skipFactor, countOfShownMorePills).Select(x => x.ToAttachment()).ToList();
+            reply.Attachments = GenerateHeroCardView.GenerateShowMoreResponse(Pills, skipFactor, countOfShownMorePills).Select(x => x.ToAttachment()).ToList();
             skipFactor += countOfShownMorePills;
             await context.PostAsync(reply);
             context.Wait(MessageReceived);
         }
 
-        [LuisIntent("Reset")]
-        public async Task Reset(IDialogContext context, IAwaitable<IMessageActivity> activity, LuisResult result)
+        [LuisIntent("Thank")]
+        public async Task Thank(IDialogContext context, IAwaitable<IMessageActivity> activity, LuisResult result)
         {
             await context.PostAsync("Thank for collaboration :)");
-            context.Done<object>(new object());
+            context.Wait(MessageReceived);
         }
 
         [LuisIntent("")]
         public async Task None(IDialogContext context, IAwaitable<IMessageActivity> activity, LuisResult result)
         {
             await context.PostAsync("Sorry, I don't understand what are you talking about.");
-            context.Done<object>(new object());
+            context.Wait(MessageReceived);
+        }
+
+        private void ClearData()
+        {
+            pillRequest = new UserMultiplePillRequest();
+            skipFactor = 3;
         }
 
         private UserMultiplePillRequest FillRequestDataByFoundedEntities(IList<EntityRecommendation> entities)
         {
             UserMultiplePillRequest request = new UserMultiplePillRequest();
             if (entities.Any(x => x.Type.Equals("Shape")))
-                request.Shape = entities.Where(x => x.Type.Equals("Shape")).Select(x => x.Entity.ToString()).FirstOrDefault();
+                request.Shape = VariablesSearcher.SearchShapeId(entities.Where(x => x.Type.Equals("Shape")).Select(x => x.Entity.ToString()).FirstOrDefault());
             if (entities.Any(x => x.Type.Equals("Color")))
-                request.Colors = entities.Where(x => x.Type.Equals("Color")).Select(x => x.Entity.ToString()).Aggregate("", (x, y) => x += y);
+                request.Colors = VariablesSearcher.SearchColorsIdes(entities.Where(x => x.Type.Equals("Color")).Select(x => x.Entity.ToString()).Aggregate("", (x, y) => x += y));
             if (entities.Any(x => x.Type.Equals("FrontSideId")))
                 request.FrontSideId = entities.Where(x => x.Type.Equals("FrontSideId")).Select(x => x.Entity.ToString()).FirstOrDefault();
             if (entities.Any(x => x.Type.Equals("BackSideId")))
@@ -200,7 +221,7 @@ namespace WhatPillsBot.Dialogs.Luis
             return request;
         }
 
-        private Dictionary<string,string> GenerateNotFilledData(UserMultiplePillRequest request)
+        private Dictionary<string, string> GenerateNotFilledData(UserMultiplePillRequest request)
         {
             var notFilledParams = new Dictionary<string, string>();
             if (string.IsNullOrEmpty(request.Colors))
@@ -208,9 +229,9 @@ namespace WhatPillsBot.Dialogs.Luis
             if (string.IsNullOrEmpty(request.Shape))
                 notFilledParams.Add("Shape", "set shape");
             if (string.IsNullOrEmpty(request.FrontSideId))
-                notFilledParams.Add("Front side number", "set frontSideId");
+                notFilledParams.Add("Front side imprint", "set side");
             if (string.IsNullOrEmpty(request.BackSideId))
-                notFilledParams.Add("Back side number", "set backSideId");
+                notFilledParams.Add("Back side imprint", "set side");
             return notFilledParams;
         }
 
@@ -222,9 +243,9 @@ namespace WhatPillsBot.Dialogs.Luis
             if (!string.IsNullOrEmpty(request.Shape))
                 result.Append($"Shape: {request.Shape}\n");
             if (!string.IsNullOrEmpty(request.FrontSideId))
-                result.Append($"Front side number: {request.FrontSideId}\n");
+                result.Append($"Front side imprint: {request.FrontSideId}\n");
             if (!string.IsNullOrEmpty(request.BackSideId))
-                result.Append($"Back side number: {request.BackSideId}");
+                result.Append($"Back side imprint: {request.BackSideId}");
             return result.ToString();
         }
     }
